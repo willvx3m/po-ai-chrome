@@ -6,7 +6,7 @@ function clickButton() {
 
     if (data.enabled) {
       const payout = document.querySelector('div.value__val-start').innerText;
-      console.log('payout', payout);
+      // console.log('payout', payout);
       const payoutNumber = parseFloat(payout);
       if(payoutNumber < 90) {
         console.log('Payout is', payoutNumber, 'Changing to top pair');
