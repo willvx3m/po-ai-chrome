@@ -1,14 +1,11 @@
 {
   "manifest_version": 3,
   "name": "PO AI Trading",
-  "version": "1.0",
+  "version": "1.1",
   "description": "Clicks a button with class 'ai-trading-btn' if a div with class 'aaa' exists.",
   "permissions": ["activeTab", "scripting", "storage"],
-  "background": {
-    "service_worker": "background.js"
-  },
   "action": {
-    "default_popup": "popup.html",
+    "default_popup": "popup/index.html",
     "default_icon": {
       "16": "images/icon16.png",
       "48": "images/icon48.png",
@@ -17,8 +14,8 @@
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"]
+      "matches": ["https://*.pocketoption.com/*"],
+      "js": ["content/utils.js", "content/index.js"]
     }
   ]
 } 
