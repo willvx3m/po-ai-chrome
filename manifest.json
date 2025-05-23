@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "PO AI Trading",
-  "version": "1.1",
-  "description": "Clicks a button with class 'ai-trading-btn' if a div with class 'aaa' exists.",
+  "version": "2.0",
+  "description": "Do your thing",
   "permissions": ["activeTab", "scripting", "storage"],
   "action": {
     "default_popup": "popup/index.html",
