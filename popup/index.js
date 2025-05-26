@@ -31,6 +31,36 @@ document.getElementById('toggle').addEventListener('click', () => {
   });
 });
 
+document.getElementById('buttonDuration').addEventListener('click', () => {
+  const duration = document.getElementById('duration').value;
+  console.log('[buttonDuration] Duration:', duration);
+  dispatchMessageToPO('setDuration', duration);
+});
+
+document.getElementById('buttonAmount').addEventListener('click', () => {
+  const amount = document.getElementById('amount').value;
+  console.log('[buttonAmount] Amount:', amount);
+  dispatchMessageToPO('setAmount', amount);
+});
+
+function dispatchMessageToPO(action, data) {
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    if (tabs.length > 0) {
+      const activeTab = tabs[0];
+      const url = new URL(activeTab.url);
+
+      // Check if the domain is pocketoption.com
+      if (url.hostname === 'pocketoption.com') {
+        chrome.tabs.sendMessage(activeTab.id, { action, data });
+      } else {
+        console.log("The active tab is not on pocketoption.com");
+      }
+    } else {
+      console.log("No active tab found");
+    }
+  });
+}
+
 function displaySettings(settings) {
   const enabled = settings?.enabled;
   const statusElement = document.getElementById("settingDisplay");
