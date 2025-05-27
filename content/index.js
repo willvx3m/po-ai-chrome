@@ -29,10 +29,10 @@ function run() {
         if (!hasActivePosition()) {
           console.log('[run] No active position, creating a new position');
 
-          // TODO: we should read RSI - RSI > 70 -> create a SELL, RSI < 30 -> create a BUY
+          // TODO: we should read RSI - RSI > 70 -> create a BUY, RSI < 30 -> create a SELL
           const marketSentiment = getMarketSentiment();
-          if (parseInt(marketSentiment) < 30) {
-            console.log(`[run] MSentiment ${marketSentiment} is < 30, creating a BUY position`);
+          if (parseInt(marketSentiment) > 70) {
+            console.log(`[run] MSentiment ${marketSentiment} is > 70, creating a BUY position`);
             const newPositionAmount = settings.defaultAmount;
             const newPositionDuration = settings.defaultDuration;
             setEndTime(newPositionDuration, () => {
@@ -41,8 +41,8 @@ function run() {
                 console.log('[run] Position created', newPositionAmount, 'BUY');
               });
             });
-          } else if (parseInt(marketSentiment) > 70) {
-            console.log(`[run] MSentiment ${marketSentiment} is > 70, creating a SELL position`);
+          } else if (parseInt(marketSentiment) < 30) {
+            console.log(`[run] MSentiment ${marketSentiment} is < 30, creating a SELL position`);
             const newPositionAmount = settings.defaultAmount;
             const newPositionDuration = settings.defaultDuration;
             setEndTime(newPositionDuration, () => {

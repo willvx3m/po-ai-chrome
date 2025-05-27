@@ -88,3 +88,16 @@ With 10 shots:\
 
 1. Check Demo/Live Environment
 2. Make sure to set AMOUNT LIMIT
+
+
+## Test Suites
+
+1. May 27th 12:00 - 13:11
+
+MS > 70 -> SELL, MS < 30 -> BUY
+StartAmount: 2 (Then likely 1)
+
+2. May 27th 13:30 - 14:30
+   
+MS > 70 -> BUY, MS < 30 -> SELL
+StartAmount: 2 (Then likely 1)

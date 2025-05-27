@@ -96,13 +96,13 @@ function changeTopPairAndOpenActiveTrades() {
 
         setTimeout(() => {
             openActiveTrades();
-            const assetsDropdown = document.querySelector('div.drop-down-modal div.assets-block');
-            if (assetsDropdown) {
-                assetsDropdown.remove();
-            }
-            // TODO: next time this doesn't work
-        }, 200);
-    }, 200);
+            // Keep the modal open
+            // const assetsDropdown = document.querySelector('div.drop-down-modal div.assets-block');
+            // if (assetsDropdown) {
+            //     assetsDropdown.remove();
+            // }
+        }, 500);
+    }, 500);
 }
 
 function openActiveTrades() {
