@@ -26,9 +26,10 @@ function getActivePositions(callback) {
         positions.push({
             pair: position.querySelector('div.item-row:first-child > div > a').innerText,
             direction: position.querySelector('i.fa-arrow-up') ? 'BUY' : 'SELL',
-            payout: 0,
-            profit: 0,
+            profit: parseInt(position.querySelector('div.item-row:first-child span.price-up').innerText),
+            amount: 0,
             openPrice: 0,
+            currentProfit: 0,
             currentPrice: 0,
             timeLeft: position.querySelector('div.item-row:first-child div:last-child').innerText,
 
@@ -45,11 +46,11 @@ function getActivePositions(callback) {
     const getPositionDetail = (positions, index) => {
         if (index >= positions.length) {
             if (callback) {
-                var price = positions[0].currentPrice * 1;
-                var payout = positions.reduce((acc, position) => acc + position.payout * 1, 0);
-                var outcome = positions.reduce((acc, position) => acc + position.outcome * 1, 0);
+                var price = positions[0].currentPrice;
+                var amount = positions.reduce((acc, position) => acc + position.amount, 0);
+                var outcome = positions.reduce((acc, position) => acc + position.outcome, 0);
                 var timeLeft = positions[0].timeLeft;
-                callback(positions, price, payout, outcome, timeLeft);
+                callback(positions, price, amount, outcome, timeLeft);
             }
 
             return;
@@ -65,11 +66,11 @@ function getActivePositions(callback) {
         }
 
         setTimeout(() => {
-            position.openPrice = positionDom.querySelector('div.price-info__prices div.price-info__prices-item:first-child').innerText.replace('Open price:\n', '').trim();
-            position.currentPrice = positionDom.querySelector('div.price-info__prices div.price-info__prices-item:nth-child(2)').innerText.replace('Current price:\n', '').trim();
-            position.payout = positionDom.querySelector('div.forecast > div:first-child > div:nth-child(2) span').innerText.replace('$', '').trim();
-            position.profit = positionDom.querySelector('div.forecast > div:first-child > div:nth-child(3) span').innerText.replace('$', '').replace('+', '').trim();
-            position.outcome = position.profit * 1 > 0 ? position.payout * 1 + position.profit * 1 : 0;
+            position.openPrice = 1 * positionDom.querySelector('div.price-info__prices div.price-info__prices-item:first-child').innerText.replace('Open price:\n', '').trim();
+            position.currentPrice = 1 * positionDom.querySelector('div.price-info__prices div.price-info__prices-item:nth-child(2)').innerText.replace('Current price:\n', '').trim();
+            position.amount = 1 * positionDom.querySelector('div.forecast > div:first-child > div:nth-child(2) span').innerText.replace('$', '').trim();
+            position.currentProfit = 1 * positionDom.querySelector('div.forecast > div:first-child > div:nth-child(3) span').innerText.replace('$', '').replace('+', '').trim();
+            position.outcome = position.currentProfit > 0 ? position.amount + position.currentProfit : 0;
 
             price = position.currentPrice;
 

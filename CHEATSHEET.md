@@ -37,6 +37,28 @@ This approach is used when there is a clear uptrend.
 ## Strategy 3. Local support/resistance based
 [TO EDIT]
 
+## Strategy 4. Min-risk based
+
+1. Identify upcoming price range using AI models
+2. Create a starting position with a likely CALL from above report
+3. Every 10 seconds (set interval), do the following:
+ - Get current price
+ - Select X (CALL/PUT), Y (amount) to minimize the loss in every possible case (this can be restricted to nearest N areas)
+ - Create a position with the figured X/Y. Skip it unless there is no proper X/Y pair found
+
+## Dev task
+[DONE] - Save/Restore settings
+[DONE] - Open Trades->Opened tab
+[DONE] - Check Has Active Trades Going On
+[DONE] - Switch to currency pair with higher payout
+- Bug fix on switching currency pair (Not working on 2nd attempt)
+- Automatic browser reload after X time (including re-start the run function)
+[DONE] - Get current positions (with current price)
+[DONE] - Create position
+- Figure out X/Y pair (use brute force)
+- Bug fix: Uncaught Error: Extension context invalidated.
+- Create starting position via RSI/Market Sentiment
+
 ## Estimated outcome
 
 ### Case 1: 2 positions, Price inside the range
@@ -59,3 +81,9 @@ Percentage: 10%
 ### Overall outcome
 With 10 shots:\
 184 * 1 + (-8) * 8 + (-100) * 1 = 20
+
+
+## Going-Live
+
+1. Check Demo/Live Environment
+2. Make sure to set AMOUNT LIMIT

@@ -11,9 +11,8 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
 // Main function
 function run() {
-  chrome.storage.local.get(['settings'], (data) => {
-    console.log('[run] settings', data.settings);
-    const settings = data.settings || {};
+  readSettings((settings) => {
+    console.log('[run] settings', settings);
     const enabled = settings.enabled;
     if (!enabled) {
       console.log('[run] Extension is disabled');
@@ -28,18 +27,43 @@ function run() {
     } else {
       if (openActiveTrades()) {
         if (!hasActivePosition()) {
-          console.log('[run] No active position');
-          // TODO: create position: RANDOM??
-        } else {
-          getActivePositions((positions, price, payout, outcome, timeLeft) => {
-            console.log('[run] Current positions:', positions);
-            console.log(`[run] Current price: ${price}, Total payout: ${payout}, Total outcome: ${outcome}, Time left: ${timeLeft}`);
+          console.log('[run] No active position, creating a new position');
 
-            const newPosition = calculateNextPosition(positions, payout, outcome, timeLeft, price);
-            const maxPositionLimit = settings.maxPositionLimit || 10;
+          // TODO: we should read RSI - RSI > 70 -> create a BUY, RSI < 30 -> create a SELL
+          const marketSentiment = getMarketSentiment();
+          if (parseInt(marketSentiment) > 70) {
+            console.log(`[run] MSentiment ${marketSentiment} is > 70, creating a BUY position`);
+            const newPositionAmount = settings.defaultAmount;
+            const newPositionDuration = settings.defaultDuration;
+            setEndTime(newPositionDuration, () => {
+              console.log('[run] Position duration set', newPositionDuration);
+              createPosition(newPositionAmount, 'BUY', () => {
+                console.log('[run] Position created', newPositionAmount, 'BUY');
+              });
+            });
+          } else if (parseInt(marketSentiment) < 30) {
+            console.log(`[run] MSentiment ${marketSentiment} is < 30, creating a SELL position`);
+            const newPositionAmount = settings.defaultAmount;
+            const newPositionDuration = settings.defaultDuration;
+            setEndTime(newPositionDuration, () => {
+              console.log('[run] Position duration set', newPositionDuration);
+              createPosition(newPositionAmount, 'SELL', () => {
+                console.log('[run] Position created', newPositionAmount, 'SELL');
+              });
+            });
+          } else {
+            console.log(`[run] MSentiment ${marketSentiment} is ${marketSentiment}, not creating a position`);
+          }
+        } else {
+          getActivePositions((positions, price, amount, outcome, timeLeft) => {
+            console.log('[run] Current positions:', positions);
+            console.log(`[run] Current price: ${price}, Total amount: ${amount}, Total outcome: ${outcome}, Time left: ${timeLeft}`);
+
+            const newPosition = calculateNextPosition(positions, price, payoutNumber);
+            const maxPositionLimit = settings.maxPositionLimit;
             const newPositionRequired = newPosition && positions.length < maxPositionLimit;
             if (newPositionRequired) {
-              console.log(`[run] New position amount: ${newPosition.amount}, direction: ${newPosition.direction}`);
+              console.log(`[run] New position amount: ${newPosition.amount}, direction: ${newPosition.direction}, minNetProfit: ${newPosition.minNetProfit}`);
               createPosition(newPosition.amount, newPosition.direction, () => {
                 console.log('[run] Position created');
               });
@@ -47,15 +71,11 @@ function run() {
 
             delete positions;
           });
-
-          // const marketSentiment = getMarketSentiment();
-          // console.log(`[run] Market sentiment: ${marketSentiment}`);
         }
       }
     }
 
-    const interval = settings.interval || 10000;
-    setTimeout(run, interval);
+    setTimeout(run, settings.interval);
   });
 }
 

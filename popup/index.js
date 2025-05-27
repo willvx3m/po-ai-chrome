@@ -43,6 +43,56 @@ document.getElementById('buttonAmount').addEventListener('click', () => {
   dispatchMessageToPO('setAmount', amount);
 });
 
+document.getElementById('buttonDefaultAmount').addEventListener('click', () => {
+  const defaultAmount = document.getElementById('defaultAmount').value;
+  console.log('[buttonDefaultAmount] Default Amount:', defaultAmount);
+  settings.defaultAmount = defaultAmount * 1;
+  chrome.storage.local.set({ settings }, () => {
+    console.log('[buttonDefaultAmount] New settings', settings);
+    displaySettings(settings);
+  });
+});
+
+document.getElementById('buttonDefaultDuration').addEventListener('click', () => {
+  const defaultDuration = document.getElementById('defaultDuration').value;
+  console.log('[buttonDefaultDuration] Default Duration:', defaultDuration);
+  settings.defaultDuration = defaultDuration * 1;
+  chrome.storage.local.set({ settings }, () => {
+    console.log('[buttonDefaultDuration] New settings', settings);
+    displaySettings(settings);
+  });
+});
+
+document.getElementById('buttonMaxPositionLimit').addEventListener('click', () => {
+  const maxPositionLimit = document.getElementById('maxPositionLimit').value;
+  console.log('[buttonMaxPositionLimit] Max Position Limit:', maxPositionLimit);
+  settings.maxPositionLimit = maxPositionLimit * 1;
+  chrome.storage.local.set({ settings }, () => {
+    console.log('[buttonMaxPositionLimit] New settings', settings);
+    displaySettings(settings);
+  });
+});
+
+document.getElementById('buttonInterval').addEventListener('click', () => {
+  const interval = document.getElementById('interval').value;
+  console.log('[buttonInterval] Interval:', interval);
+  settings.interval = interval * 1;
+  chrome.storage.local.set({ settings }, () => {
+    console.log('[buttonInterval] New settings', settings);
+    displaySettings(settings);
+  });
+});
+
+document.getElementById('buttonDefaultDirection').addEventListener('click', () => {
+  const defaultDirection = document.getElementById('defaultDirection').value;
+  console.log('[buttonDefaultDirection] Default Direction:', defaultDirection);
+  settings.defaultDirection = defaultDirection;
+  chrome.storage.local.set({ settings }, () => {
+    console.log('[buttonDefaultDirection] New settings', settings);
+    displaySettings(settings);
+  });
+});
+
 function dispatchMessageToPO(action, data) {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     if (tabs.length > 0) {
@@ -64,5 +114,10 @@ function dispatchMessageToPO(action, data) {
 function displaySettings(settings) {
   const enabled = settings?.enabled;
   const statusElement = document.getElementById("settingDisplay");
-  statusElement.innerHTML = enabled ? "Enabled" : "Disabled";
+  statusElement.innerHTML = `Enabled: ${enabled ? "Yes" : "No"}<br>
+    Default Amount: ${settings.defaultAmount || "N/A"}<br>
+    Default Duration: ${settings.defaultDuration || "N/A"}<br>
+    Max Position Limit: ${settings.maxPositionLimit || "N/A"}<br>
+    Interval: ${settings.interval || "N/A"}<br>
+    Default Direction: ${settings.defaultDirection || "N/A"}`;
 }
