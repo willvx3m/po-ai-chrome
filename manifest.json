@@ -4,6 +4,9 @@
   "version": "2.0",
   "description": "Do your thing",
   "permissions": ["activeTab", "scripting", "storage"],
+  "background": {
+    "service_worker": "background.js"
+  },
   "action": {
     "default_popup": "popup/index.html",
     "default_icon": {

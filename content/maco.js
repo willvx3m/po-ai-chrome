@@ -20,7 +20,11 @@ function calculateNextPosition(ps, price, newProfit) {
 
     // console.log('New ranges:', ranges);
     for (var direction of ['BUY', 'SELL']) {
-        for (var amount = 5; amount <= 100; amount += 5) {
+        // TODO: range and tick should be adjusted depending on new position index
+        // 1st: tick = 10, 10 - 100
+        // 2nd: tick = 5, 5 - 100
+        // 3rd: tick = 3, 3 - 100 etc
+        for (var amount = 1; amount <= 100; amount ++) {
             const newTestPosition = {
                 openPrice: price,
                 amount,
@@ -29,9 +33,11 @@ function calculateNextPosition(ps, price, newProfit) {
             };
 
             positions.push(newTestPosition);
-            const newMinNetProfit = Math.min(...ranges.map(range => getNetProfit(positions, range)));
-            // console.log('New Test position:', newTestPosition, ' - New minNetProfit:', newMinNetProfit);
-            const hasBetterNetProfit = newPosition.minNetProfit < newMinNetProfit;
+            const netProfitsRanges = ranges.map(range => getNetProfit(positions, range));
+            const newMinNetProfit = Math.min(...netProfitsRanges);
+            const profitableRanges = netProfitsRanges.filter(netProfit => netProfit > 0);
+            const hasBetterNetProfit = newPosition.minNetProfit < newMinNetProfit && profitableRanges.length > ranges.length / 2;
+            // console.log('New Test position:', newTestPosition, ' - New minNetProfit:', newMinNetProfit, ' - Profitable ranges:', profitableRanges.length, ' out of', ranges.length);
             if (hasBetterNetProfit) {
                 newPosition.amount = amount;
                 newPosition.direction = direction;
@@ -90,18 +96,21 @@ function getNetProfit(positions, { rangeStart, rangeEnd }) {
 
 function main() {
     const positions = [
-        { openPrice: 50, amount: 10, direction: 'BUY', profit: 92 },
+        { openPrice: 50, amount: 3, direction: 'BUY', profit: 92 },
         // { openPrice: 150, amount: 100, direction: 'SELL', profit: 92 },
         // { openPrice: 70, amount: 100, direction: 'BUY', profit: 92 },
         // { openPrice: 120, amount: 100, direction: 'SELL', profit: 92 }
     ];
 
-    const priceTargets = [10, 180, 200, 175, 90];
+
+    const priceTargets = [100, 80];
+    // for(var i = 0; i < 10; i ++){
+    //     priceTargets.push(Math.round(Math.random() * 200));
+    // }
 
     priceTargets.forEach((price) => {
-        console.log('--> Position length:', positions.length);
         const nextPosition = calculateNextPosition(positions, price, 92);
-        console.log(`Next Position at price ${price}:`, nextPosition);
+        console.log(`Next Position at price:`, price, ' -> ', nextPosition);
 
         if (nextPosition) {
             positions.push(nextPosition);
@@ -109,4 +118,4 @@ function main() {
     });
 }
 
-// main();
+main();
