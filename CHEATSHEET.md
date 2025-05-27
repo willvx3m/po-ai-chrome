@@ -51,13 +51,14 @@ This approach is used when there is a clear uptrend.
 [DONE] - Open Trades->Opened tab
 [DONE] - Check Has Active Trades Going On
 [DONE] - Switch to currency pair with higher payout
-- Bug fix on switching currency pair (Not working on 2nd attempt)
-- Automatic browser reload after X time (including re-start the run function)
 [DONE] - Get current positions (with current price)
 [DONE] - Create position
-- Figure out X/Y pair (use brute force)
+[DONE] - Figure out X/Y pair (use brute force)
+[DONE] - Create starting position via Market Sentiment
+- Bug fix on switching currency pair (Not working on 2nd attempt)
+- Automatic browser reload after X time (including re-start the run function)
 - Bug fix: Uncaught Error: Extension context invalidated.
-- Create starting position via RSI/Market Sentiment
+- Create starting position via RSI
 
 ## Estimated outcome
 
