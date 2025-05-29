@@ -40,9 +40,8 @@ function run() {
           const maxPositionLimit = settings.maxPositionLimit;
           const newPositionRequired = newPosition && positions.length < maxPositionLimit;
           if (newPositionRequired) {
-            console.log(`[run] New position amount: ${newPosition.amount}, direction: ${newPosition.direction}, minNetProfit: ${newPosition.minNetProfit}`);
             createPosition(newPosition.amount, newPosition.direction, () => {
-              console.log('[run] Position created');
+              console.log(`[run] => New position created: ${newPosition.amount} - ${newPosition.direction}`);
             });
           }
 

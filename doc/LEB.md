@@ -30,4 +30,4 @@
 - Only 1 out of possible `3 ~ MAX_PO` ranges, it will have the negative outcome.
 - Other ranges would have positive whose abs is bigger than the above loss. (Sure?)
 - The possibility of the price falling into the negative range is 50% (pretty generous ;))
-- So the compounding result > 0
+- So the compounding result > 0 ?? Need full calculation with probability

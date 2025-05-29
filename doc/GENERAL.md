@@ -108,3 +108,8 @@ StartAmount: 2, Duration: 3m / 2m (Then likely 1)
    
 MS > 70 -> BUY, MS < 30 -> SELL
 StartAmount: 2, Duration: 10m (Then likely 1)
+
+4. May 29th 13:00 -  
+
+LEB - Pairing position strategy\
+StartAmount: 2, Duration: 5m
