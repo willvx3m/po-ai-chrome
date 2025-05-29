@@ -1,3 +1,4 @@
+
 const INFINITE_TOP = 10000000;
 const INFINITE_BOTTOM = 0;
 const MAX_AMOUNT = 10; // TODO 100
@@ -5,35 +6,35 @@ const MAX_POSITIONS = 4; // TODO 10
 const arrayOfD = ['BUY', 'SELL'];
 const arrayOfA = Array.from({ length: MAX_AMOUNT }, (_, i) => i + 1);
 
-function createNewPositionFromMarketSentiment(settings) {
+function createStartingPosition(settings) {
     // TODO: we should read RSI - RSI > 70 -> create a BUY, RSI < 30 -> create a SELL
     const marketSentiment = getMarketSentiment();
     if (parseInt(marketSentiment) > 70) {
-        console.log(`[cNPFMS] MSentiment ${marketSentiment} is > 70, creating a BUY position`);
+        console.log(`[cSP] MSentiment ${marketSentiment} is > 70, creating a BUY position`);
         const newPositionAmount = settings.defaultAmount;
         const newPositionDuration = settings.defaultDuration;
         setEndTime(newPositionDuration, () => {
-            console.log('[run] Position duration set', newPositionDuration);
+            console.log('[cSP] Position duration set', newPositionDuration);
             createPosition(newPositionAmount, 'BUY', () => {
-                console.log('[cNPFMS] Position created', newPositionAmount, 'BUY');
+                console.log('[cSP] Position created', newPositionAmount, 'BUY');
             });
         });
     } else if (parseInt(marketSentiment) < 30) {
-        console.log(`[cNPFMS] MSentiment ${marketSentiment} is < 30, creating a SELL position`);
+        console.log(`[cSP] MSentiment ${marketSentiment} is < 30, creating a SELL position`);
         const newPositionAmount = settings.defaultAmount;
         const newPositionDuration = settings.defaultDuration;
         setEndTime(newPositionDuration, () => {
-            console.log('[cNPFMS] Position duration set', newPositionDuration);
+            console.log('[cSP] Position duration set', newPositionDuration);
             createPosition(newPositionAmount, 'SELL', () => {
-                console.log('[cNPFMS] Position created', newPositionAmount, 'SELL');
+                console.log('[cSP] Position created', newPositionAmount, 'SELL');
             });
         });
     } else {
-        console.log(`[cNPFMS] MSentiment is ${marketSentiment}, not creating a position`);
+        console.log(`[cSP] MSentiment is ${marketSentiment}, not creating a position`);
     }
 }
 
-function calculateNextPosition(ps, price, newProfit) {
+function calculateNextPosition(ps, price, newProfit, settings) {
     const positions = JSON.parse(JSON.stringify(ps));
     const oldRanges = getRanges(positions, null);
     // console.log('Old positions:', positions);
@@ -235,8 +236,6 @@ function getNextPositionSets(positions, parentPositionSetIndex) {
 
     delete ranges;
     delete arrayOfX;
-    delete arrayOfD;
-    delete arrayOfA;
 
     return nextPositionSets;
 }

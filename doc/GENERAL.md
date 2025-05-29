@@ -59,8 +59,8 @@ This approach is used when there is a clear uptrend.
 [IGNORE] - Bug fix: Uncaught Error: Extension context invalidated.
 - Automatic browser reload after X time (including re-start the run function)
 - Create starting position via RSI
-- BUG: changing pair would break the session, only change it when there is no active position
-- CRUCIAL: Pick the correct direction & duration that you can gurantee 100% pairing
+[DONE] - BUG: changing pair would break the session, only change it when there is no active position
+- CRUCIAL: Pick the correct direction & duration that you can gurantee 100% pairing ???
 
 ## Estimated outcome
 

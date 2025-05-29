@@ -22,21 +22,21 @@ function run() {
     if (openActiveTrades()) {
       const payoutNumber = getCurrentPayout();
       // console.log('[run] Payout is', payoutNumber);
-      
+
       if (!hasActivePosition()) {
         if (payoutNumber < 90) {
           console.log(`[run] Payout (${payoutNumber}) is less than 90, changing to top pair`);
           changeTopPairAndOpenActiveTrades();
         } else {
           console.log('[run] No active position, creating a new position');
-          createNewPositionFromMarketSentiment(settings);
+          createStartingPosition(settings);
         }
       } else {
         getActivePositions((positions, price, amount, outcome, timeLeft) => {
           console.log('[run] Current positions:', positions);
           console.log(`[run] Current price: ${price}, Total amount: ${amount}, Total outcome: ${outcome}, Time left: ${timeLeft}`);
 
-          const newPosition = calculateNextPosition(positions, price, payoutNumber);
+          const newPosition = calculateNextPosition(positions, price, payoutNumber, settings);
           const maxPositionLimit = settings.maxPositionLimit;
           const newPositionRequired = newPosition && positions.length < maxPositionLimit;
           if (newPositionRequired) {
@@ -68,7 +68,7 @@ function setDuration(duration) {
 
 function setAmount(amount) {
   console.log('[setAmount] Amount:', amount);
-  if (!amount || amount * 1 < 1) {
+  if (!amount || amount * 1 <= 0) {
     return;
   }
 

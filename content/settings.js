@@ -11,13 +11,13 @@ function readSettings(callback){
     chrome.storage.local.get(['settings'], (data) => {
         const settings = data.settings || {};
         if(!settings.defaultAmount){
-            settings.defaultAmount = 1;
+            settings.defaultAmount = 2;
         }
         if(!settings.defaultDuration){
-            settings.defaultDuration = 10;
+            settings.defaultDuration = 5;
         }
         if(!settings.maxPositionLimit){
-            settings.maxPositionLimit = 10;
+            settings.maxPositionLimit = 6; // 3 pairs for leb
         }
         if(!settings.interval){
             settings.interval = 10000;

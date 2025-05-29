@@ -4,8 +4,8 @@ chrome.runtime.onInstalled.addListener(() => {
     settings: {
       enabled: false,
       defaultAmount: 2,
-      defaultDuration: 2,
-      maxPositionLimit: 10,
+      defaultDuration: 5,
+      maxPositionLimit: 6,
       interval: 10000,
       defaultDirection: 'BUY'
     }

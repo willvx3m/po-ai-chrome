@@ -222,6 +222,22 @@ function createPositionUsingAI() {
 }
 
 function createPosition(amount, direction, callback) {
+    if (amount === 0) {
+        const btnBuy = document.querySelector('div.tour-action-buttons-container a.btn-call');
+        const btnSell = document.querySelector('div.tour-action-buttons-container a.btn-put');
+
+        if (direction === 'BUY') {
+            btnBuy.click();
+        } else {
+            btnSell.click();
+        }
+
+        if (callback) {
+            callback();
+        }
+        return;
+    }
+
     setPositionAmount(amount, () => {
         setTimeout(() => {
             const btnBuy = document.querySelector('div.tour-action-buttons-container a.btn-call');
