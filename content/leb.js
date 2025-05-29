@@ -18,23 +18,21 @@ function calculateNextPosition(ps, price, newProfit, settings) {
     const positions = ps;
     const buyPositions = positions.filter(position => position.direction === 'BUY');
     const sellPositions = positions.filter(position => position.direction === 'SELL');
-    const countBuyPositions = buyPositions.length;
-    const countSellPositions = sellPositions.length;
+    const totalBuyAmount = buyPositions.reduce((acc, position) => acc + position.amount, 0);
+    const totalSellAmount = sellPositions.reduce((acc, position) => acc + position.amount, 0);
 
     var needBuy;
     var needSell;
     var shouldCutAmount;
 
-    if (countBuyPositions === countSellPositions) {
-        if (countBuyPositions === 1) {
-            shouldCutAmount = true;
-        }
+    if (totalBuyAmount === totalSellAmount) {
+        shouldCutAmount = true;
 
         needBuy = positions.every(position => position.openPrice > price);
         needSell = positions.every(position => position.openPrice < price);
-    } else if (countSellPositions < countBuyPositions) {
+    } else if (totalBuyAmount > totalSellAmount) {
         needSell = buyPositions.every(position => position.openPrice < price);
-    } else if (countSellPositions > countBuyPositions) {
+    } else if (totalBuyAmount < totalSellAmount) {
         needBuy = sellPositions.every(position => position.openPrice > price);
     }
 

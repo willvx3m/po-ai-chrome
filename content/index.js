@@ -12,7 +12,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 // Main function
 function run() {
   readSettings((settings) => {
-    console.log('[run] settings', settings);
+    // console.log('[run] settings', settings);
     const enabled = settings.enabled;
     if (!enabled) {
       console.log('[run] Extension is disabled');
@@ -33,8 +33,8 @@ function run() {
         }
       } else {
         getActivePositions((positions, price, amount, outcome, timeLeft) => {
-          console.log('[run] Current positions:', positions);
-          console.log(`[run] Current price: ${price}, Total amount: ${amount}, Total outcome: ${outcome}, Time left: ${timeLeft}`);
+          console.log('[run] Positions:', positions);
+          console.log(`[run] Price: ${price}, Amount: ${amount} -> ${outcome}, ${timeLeft} left`);
 
           const newPosition = calculateNextPosition(positions, price, payoutNumber, settings);
           const maxPositionLimit = settings.maxPositionLimit;
