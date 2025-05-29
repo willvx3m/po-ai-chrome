@@ -1,3 +1,38 @@
+const INFINITE_TOP = 10000000;
+const INFINITE_BOTTOM = 0;
+const MAX_AMOUNT = 10; // TODO 100
+const MAX_POSITIONS = 4; // TODO 10
+const arrayOfD = ['BUY', 'SELL'];
+const arrayOfA = Array.from({ length: MAX_AMOUNT }, (_, i) => i + 1);
+
+function createNewPositionFromMarketSentiment(settings) {
+    // TODO: we should read RSI - RSI > 70 -> create a BUY, RSI < 30 -> create a SELL
+    const marketSentiment = getMarketSentiment();
+    if (parseInt(marketSentiment) > 70) {
+        console.log(`[cNPFMS] MSentiment ${marketSentiment} is > 70, creating a BUY position`);
+        const newPositionAmount = settings.defaultAmount;
+        const newPositionDuration = settings.defaultDuration;
+        setEndTime(newPositionDuration, () => {
+            console.log('[run] Position duration set', newPositionDuration);
+            createPosition(newPositionAmount, 'BUY', () => {
+                console.log('[cNPFMS] Position created', newPositionAmount, 'BUY');
+            });
+        });
+    } else if (parseInt(marketSentiment) < 30) {
+        console.log(`[cNPFMS] MSentiment ${marketSentiment} is < 30, creating a SELL position`);
+        const newPositionAmount = settings.defaultAmount;
+        const newPositionDuration = settings.defaultDuration;
+        setEndTime(newPositionDuration, () => {
+            console.log('[cNPFMS] Position duration set', newPositionDuration);
+            createPosition(newPositionAmount, 'SELL', () => {
+                console.log('[cNPFMS] Position created', newPositionAmount, 'SELL');
+            });
+        });
+    } else {
+        console.log(`[cNPFMS] MSentiment is ${marketSentiment}, not creating a position`);
+    }
+}
+
 function calculateNextPosition(ps, price, newProfit) {
     const positions = JSON.parse(JSON.stringify(ps));
     const oldRanges = getRanges(positions, null);
@@ -24,7 +59,7 @@ function calculateNextPosition(ps, price, newProfit) {
         // 1st: tick = 10, 10 - 100
         // 2nd: tick = 5, 5 - 100
         // 3rd: tick = 3, 3 - 100 etc
-        for (var amount = 1; amount <= 100; amount ++) {
+        for (var amount = 1; amount <= 100; amount++) {
             const newTestPosition = {
                 openPrice: price,
                 amount,
@@ -69,11 +104,11 @@ function getRanges(positions, price) {
     delete tempPrices;
 
     const ranges = [];
-    ranges.push({ rangeStart: -1, rangeEnd: prices[0] });
+    ranges.push({ rangeStart: INFINITE_BOTTOM, rangeEnd: prices[0] });
     for (var i = 0; i < prices.length - 1; i++) {
         ranges.push({ rangeStart: prices[i], rangeEnd: prices[i + 1] });
     }
-    ranges.push({ rangeStart: prices[prices.length - 1], rangeEnd: 1000000 });
+    ranges.push({ rangeStart: prices[prices.length - 1], rangeEnd: INFINITE_TOP });
 
     return ranges;
 }
@@ -94,7 +129,8 @@ function getNetProfit(positions, { rangeStart, rangeEnd }) {
     return netProfit;
 }
 
-function main() {
+/* Tests */
+function simpleTest() {
     const positions = [
         { openPrice: 50, amount: 3, direction: 'BUY', profit: 92 },
         // { openPrice: 150, amount: 100, direction: 'SELL', profit: 92 },
@@ -118,4 +154,109 @@ function main() {
     });
 }
 
-// main();
+function bruteTest() {
+    for (var N = 2; N <= MAX_POSITIONS; N++) {
+        for (var A = 1; A <= MAX_AMOUNT; A++) {
+            const arrayPS = [];
+            arrayPS.push([]);
+            arrayPS.push([
+                { positions: [createAPosition(A, 'BUY', Math.round(INFINITE_TOP / 2))] }
+            ]);
+
+            for (var i = 2; i <= N; i++) {
+                const newPS = [];
+                arrayPS[i - 1].forEach((positionSet, index) => {
+                    const nextPositionSets = getNextPositionSets(positionSet.positions, index);
+                    newPS.push(...nextPositionSets);
+                    delete nextPositionSets;
+                });
+                arrayPS.push(newPS);
+            }
+
+            console.log(' ================================ ');
+            console.log('N:', N, ' - A:', A);
+
+            const finalPS = arrayPS[N];
+            finalPS.forEach((positionSet, index) => {
+                const { minNetProfit, positiveRangePercentage } = getMetricPositionSet(positionSet);
+                positionSet.minNetProfit = minNetProfit;
+                positionSet.positiveRangePercentage = positiveRangePercentage;
+
+                if (minNetProfit > -2 && positiveRangePercentage > 50) {
+                    console.log('N:', N, ' A:', A, ' - PS #', index, ' - MNP:', minNetProfit);
+                    console.log('Found a position set with positive minNetProfit:', positionSet);
+
+                    // var prevN = N - 1;
+                    // var parentPositionSetIndex = positionSet.parentPositionSetIndex;
+                    // while(prevN >= 1){
+                    //     const prevPS = arrayPS[prevN];
+                    //     const parentPositionSet = positionSet.parentPositionSetIndex && prevPS[parentPositionSetIndex];
+                    //     if(parentPositionSet){
+                    //         const { minNetProfit, positiveRangePercentage } = getMetricPositionSet(parentPositionSet);
+                    //         parentPositionSet.minNetProfit = minNetProfit;
+                    //         parentPositionSet.positiveRangePercentage = positiveRangePercentage;
+
+                    //         console.log('N:', prevN, ' - PS #', ' - MNP:', minNetProfit);
+                    //         parentPositionSetIndex = parentPositionSet.parentPositionSetIndex;
+                    //         prevN --;
+                    //     } else {
+                    //         break;
+                    //     }
+                    // }
+                }
+
+                delete ranges;
+                delete rangeNetProfits;
+            });
+
+            delete arrayPS;
+        }
+    }
+}
+
+function getNextPositionSets(positions, parentPositionSetIndex) {
+    const ranges = getRanges(positions, null);
+    const arrayOfX = ranges.map(range => Math.round((range.rangeStart + range.rangeEnd) / 2));
+
+    const nextPositionSets = [];
+    arrayOfX.forEach(x => {
+        arrayOfD.forEach(d => {
+            arrayOfA.forEach(a => {
+                nextPositionSets.push({
+                    positions: [
+                        ...positions,
+                        createAPosition(a, d, x)
+                    ],
+                    parentPositionSetIndex
+                });
+            });
+        });
+    });
+
+    delete ranges;
+    delete arrayOfX;
+    delete arrayOfD;
+    delete arrayOfA;
+
+    return nextPositionSets;
+}
+
+function getMetricPositionSet(positionSet) {
+    const ranges = getRanges(positionSet.positions, null);
+    const rangeNetProfits = ranges.map(range => getNetProfit(positionSet.positions, range));
+    const positiveRangePercentage = Math.round(rangeNetProfits.filter(netProfit => netProfit > 0).length * 100 / rangeNetProfits.length);
+    const minNetProfit = Math.min(...rangeNetProfits);
+    return { minNetProfit, positiveRangePercentage };
+}
+
+function createAPosition(amount, direction, price) {
+    return {
+        openPrice: price,
+        amount,
+        direction,
+        profit: 92
+    };
+}
+
+// simpleTest();
+// bruteTest();
