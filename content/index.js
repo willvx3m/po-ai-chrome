@@ -9,6 +9,12 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   }
 });
 
+window.addEventListener("load", () => {
+  console.log("[PO] Window fully loaded, including all resources! Running in 10 seconds...");
+  setTimeout(run, 10000);
+});
+
+
 // Main function
 function run() {
   readSettings((settings) => {
