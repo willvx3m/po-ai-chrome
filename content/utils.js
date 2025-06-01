@@ -84,6 +84,16 @@ function getActivePositions(callback) {
     getPositionDetail(positions, 0);
 }
 
+function getEndTime() {
+    const endTime = document.querySelector('div.block--expiration-inputs div.value__val');
+    if (!endTime) {
+        console.warn('[getEndTime] No end time found');
+        return 0;
+    }
+
+    return endTime.innerText;
+}
+
 // Actions
 function changeTopPairAndOpenActiveTrades() {
     const pairDropDown = document.querySelector('a.pair-number-wrap');

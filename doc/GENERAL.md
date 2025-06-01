@@ -57,9 +57,10 @@ This approach is used when there is a clear uptrend.
 [DONE] - Create starting position via Market Sentiment
 [DONE]- Bug fix on switching currency pair (Not working on 2nd attempt) :: Not perfect, but working
 [IGNORE] - Bug fix: Uncaught Error: Extension context invalidated.
-- Automatic browser reload after X time (including re-start the run function)
-- Create starting position via RSI
+[DONE] - Automatic browser reload after X time (including re-start the run function)
+      => Restarting whenever duration setting fails
 [DONE] - BUG: changing pair would break the session, only change it when there is no active position
+- Create starting position via RSI
 - CRUCIAL: Pick the correct direction & duration that you can gurantee 100% pairing ???
 
 ## Estimated outcome

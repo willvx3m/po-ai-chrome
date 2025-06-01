@@ -1,4 +1,4 @@
-# Game: Expanding Pair-Positions (leb)
+# LEB: Expanding Pair-Positions
 
 ## Steps
 
@@ -31,3 +31,37 @@
 - Other ranges would have positive whose abs is bigger than the above loss. (Sure?)
 - The possibility of the price falling into the negative range is 50% (pretty generous ;))
 - So the compounding result > 0 ?? Need full calculation with probability
+
+
+## Prospect
+
+1. Deposit: 100$
+
+2. Outcome
+- Bonus: 100$
+- Trading Profit: X
+
+3. Expense (optional)
+- KYC: 150$
+- VPS, IP: 50$
+
+4. Time Estimate
+- A: 10, Avg Position: 5 (3-6) => 50
+- Required volume: 100 * 100 = 10000
+- Session: 10000 / 50 = 200 ~ 20hrs
+
+5. Outcome: 100 + X - [200]
+
+## Service and Cooperation
+
+1. Sell one-on-one service
+
+2. Co-operate with PO: increase their user base
+
+## Tactic Updates
+
+Speculate price movement before creating a next position. If it stays in "safe" zone, don't rush it.
+
+## Promo Codes
+
+ SUMMER2025: 100%, May 30th - Jun 15th
