@@ -8,7 +8,7 @@ function createStartingPosition(settings) {
             endTime = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()} ${endTime}`;
         }
         const newPositionSeconds = Math.abs(new Date(endTime) - new Date()) / 1000;
-        if (!newPositionSeconds || newPositionSeconds < 10 * 60) {
+        if (!newPositionSeconds || newPositionSeconds < settings.defaultDuration * 60 - 10) {
             console.log(`[cSP] Duration (${newPositionSeconds}s) is too short, `, 'EndTime:', endTime);
             console.log('Restarting ...');
             window.location.reload();
