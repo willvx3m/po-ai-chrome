@@ -2,6 +2,19 @@ function createStartingPosition(settings) {
     const newPositionAmount = settings.defaultAmount;
     const newPositionDuration = settings.defaultDuration;
     setEndTime(newPositionDuration, () => {
+        var endTime = getEndTime();
+        if (endTime) {
+            const now = new Date();
+            endTime = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()} ${endTime}`;
+        }
+        const newPositionSeconds = Math.abs(new Date(endTime) - new Date()) / 1000;
+        if (!newPositionSeconds || newPositionSeconds < 10 * 60) {
+            console.log(`[cSP] Duration (${newPositionSeconds}s) is too short, `, 'EndTime:', endTime);
+            console.log('Restarting ...');
+            window.location.reload();
+            return;
+        }
+
         console.log('[cSP] Position duration set', newPositionDuration);
         setPositionAmount(newPositionAmount, () => {
             createPosition(0, 'BUY', () => {
@@ -26,19 +39,20 @@ function calculateNextPosition(ps, price, newProfit, settings) {
     var needSell;
     var shouldCutAmount;
 
+    // Starting position is only 1, skip
+    if (buyPositions.length <= 0 || sellPositions.length <= 0) {
+        return null;
+    }
+
     if (totalBuyAmount === totalSellAmount) {
         shouldCutAmount = true;
 
         needBuy = positions.every(position => position.openPrice > price);
         needSell = positions.every(position => position.openPrice < price);
     } else if (totalBuyAmount > totalSellAmount) {
-        if (!cutPosition || cutPosition.openPrice < price) {
-            needSell = buyPositions.every(position => position.openPrice < price);
-        }
+        needSell = positions.every(position => position.openPrice < price);
     } else if (totalBuyAmount < totalSellAmount) {
-        if (!cutPosition || cutPosition.openPrice > price) {
-            needBuy = sellPositions.every(position => position.openPrice > price);
-        }
+        needBuy = positions.every(position => position.openPrice > price);
     }
 
     if (needBuy) {
