@@ -59,7 +59,7 @@ function identicalOpenTime(row1, row2) {
 }
 
 async function main() {
-    try  {
+    try {
         const positionSets = await readPositionGroups();
         console.log('File:', fileName, ' - Found', positionSets.length, 'position sets');
 
@@ -69,26 +69,16 @@ async function main() {
 
         for (const positionSet of positionSets) {
             const startingPositions = positionSet.filter(row => identicalOpenTime(row, positionSet[0]));
-            if(startingPositions.length == 2) {
+            if (startingPositions.length == 2) {
                 regularPositions.push(positionSet);
-            } else if(startingPositions.length > 2) {
+            } else if (startingPositions.length > 2) {
                 oddPositions.push(positionSet);
             } else {
                 irregularPositions.push(positionSet);
             }
         }
 
-        console.log('Found', regularPositions.length, 'regular positions');
-        var regularTotalAmount = 0;
-        var regularTotalProfit = 0;
-        for (const position of regularPositions) {
-            regularTotalAmount += position.reduce((acc, row) => acc + parseFloat(row['Trade amount']), 0);
-            regularTotalProfit += position.reduce((acc, row) => acc + parseFloat(row['Profit']), 0);
-        }
-
-        console.log('=> Regular total amount:', regularTotalAmount.toFixed(2) * 1);
-        console.log('=> Regular total profit:', regularTotalProfit.toFixed(2) * 1);
-
+        console.log();
         console.log('Found', oddPositions.length, 'odd positions');
         var oddTotalAmount = 0;
         var oddTotalProfit = 0;
@@ -99,16 +89,55 @@ async function main() {
         console.log('=> Odd total amount:', oddTotalAmount.toFixed(2) * 1);
         console.log('=> Odd total profit:', oddTotalProfit.toFixed(2) * 1);
 
+        console.log();
         console.log('Found', irregularPositions.length, 'irregular positions');
         var irregularTotalAmount = 0;
         var irregularTotalProfit = 0;
         for (const position of irregularPositions) {
             irregularTotalAmount += position.reduce((acc, row) => acc + parseFloat(row['Trade amount']), 0);
             irregularTotalProfit += position.reduce((acc, row) => acc + parseFloat(row['Profit']), 0);
-            console.log(position.map(row => row['Expiration']));
+            // console.log(position.map(row => row['Expiration']));
         }
         console.log('=> Irregular total amount:', irregularTotalAmount.toFixed(2) * 1);
         console.log('=> Irregular total profit:', irregularTotalProfit.toFixed(2) * 1);
+
+        console.log();
+        console.log('Found', regularPositions.length, 'regular positions');
+
+        var regularTotalAmount = regularPositions.reduce((acc, position) => acc + position.reduce((acc, row) => acc + parseFloat(row['Trade amount']), 0), 0);
+        var regularTotalProfit = regularPositions.reduce((acc, position) => acc + position.reduce((acc, row) => acc + parseFloat(row['Profit']), 0), 0);
+        var countFailed = regularPositions.reduce((acc, position) => acc + (position.reduce((acc, row) => acc + parseFloat(row['Profit']), 0) < 0 ? 1 : 0), 0);
+
+        for (var N = 3; N <= 6; N++) {
+            var countP = 0;
+            var countFailedP = 0;
+            var regularTotalAmountP = 0;
+            var regularTotalProfitP = 0;
+
+            for (const position of regularPositions) {
+                const positionAmount = position.reduce((acc, row) => acc + parseFloat(row['Trade amount']), 0);
+                const positionProfit = position.reduce((acc, row) => acc + parseFloat(row['Profit']), 0);
+                if (position.length === N) {
+                    countP++;
+                    regularTotalAmountP += positionAmount;
+                    regularTotalProfitP += positionProfit;
+
+                    if (positionProfit < 0) {
+                        countFailedP++;
+                    }
+                }
+            }
+
+            console.log(`=P${N}=>`, `Count:`, countP);
+            console.log(`=P${N}=>`, `Failed:`, countFailedP, '(', (countFailedP / countP * 100).toFixed(2) * 1, '% )', '(', (countFailedP / regularPositions.length * 100).toFixed(2) * 1, '% )');
+            console.log(`=P${N}=>`, `Total amount:`, regularTotalAmountP.toFixed(2) * 1);
+            console.log(`=P${N}=>`, `Total profit:`, regularTotalProfitP.toFixed(2) * 1);
+            console.log();
+        }
+
+        console.log('=> Failed:', countFailed, '(', (countFailed / regularPositions.length * 100).toFixed(2) * 1, '% )');
+        console.log('=> Total amount:', regularTotalAmount.toFixed(2) * 1);
+        console.log('=> Total profit:', regularTotalProfit.toFixed(2) * 1);
     } catch (err) {
         console.error(err);
     }

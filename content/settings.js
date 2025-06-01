@@ -8,7 +8,7 @@
 // }
 
 function readSettings(callback){
-    chrome.storage.local.get(['settings'], (data) => {
+    chrome.storage?.local?.get(['settings'], (data) => {
         const settings = data.settings || {};
         if(!settings.defaultAmount){
             settings.defaultAmount = 2;

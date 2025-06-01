@@ -2,6 +2,8 @@ function createStartingPosition(settings) {
     const newPositionAmount = settings.defaultAmount;
     const newPositionDuration = settings.defaultDuration;
     setEndTime(newPositionDuration, () => {
+        // Check end time
+        // This resolves the failure to create 2 starting positions
         var endTime = getEndTime();
         if (endTime) {
             const now = new Date();
@@ -38,11 +40,6 @@ function calculateNextPosition(ps, price, newProfit, settings) {
     var needBuy;
     var needSell;
     var shouldCutAmount;
-
-    // Starting position is only 1, skip
-    if (buyPositions.length <= 0 || sellPositions.length <= 0) {
-        return null;
-    }
 
     if (totalBuyAmount === totalSellAmount) {
         shouldCutAmount = true;
