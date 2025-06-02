@@ -26,8 +26,10 @@ function run() {
     }
 
     if (openActiveTrades()) {
+      const currentBalance = getCurrentBalance();
+      const currentQTMode = getCurrentQTMode();
       const payoutNumber = getCurrentPayout();
-      // console.log('[run] Payout is', payoutNumber);
+      console.log('[run] Balance:', currentBalance, 'QT Mode:', currentQTMode, 'Payout:', payoutNumber);
 
       if (!hasActivePosition()) {
         if (payoutNumber < 90) {
@@ -35,6 +37,7 @@ function run() {
           changeTopPairAndOpenActiveTrades();
         } else {
           console.log('[run] No active position, creating a new position');
+          checkAndSaveSettings(settings, currentBalance);
           createStartingPosition(settings);
         }
       } else {

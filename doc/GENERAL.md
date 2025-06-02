@@ -126,4 +126,18 @@ Purpose: maximize profit from latter positions
    
 Account: Rapig\
 Martingale\
-Position Amount: 1/2/4/8/16, Duration: 2m\
+Position Amount: 1/2/4/8/16, Duration: 2m, 1m\
+
+Issues:
+- max cap: 8/16 (after reviewing the volume statistics)
+- review profit per cap
+- flip BUY/SELL on 5/10 failure OR ??
+
+Conduct TEST for 5 hrs (VOLUME reaches 10k = 200 * 50)
+
+
+6.1 12:45PM - 
+
+Resumed test with upgrades
+- max cap
+- flipping BUY/SELL

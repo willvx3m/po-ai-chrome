@@ -89,6 +89,77 @@ function getActivePositions(callback) {
     getPositionDetail(positions, 0);
 }
 
+function getLatestClosedPositions(callback, limit = 4) {
+    const positions = [];
+
+    const closedPositions = document.querySelectorAll(`div.deals-list > div.deals-list__item:nth-child(-n+${limit})`);
+    closedPositions.forEach(position => {
+        positions.push({
+            pair: position.querySelector('div.item-row:first-child > div > a').innerText,
+            direction: position.querySelector('i.fa-arrow-up') ? 'BUY' : 'SELL',
+            profit: parseInt(position.querySelector('div.item-row:first-child span.price-up').innerText),
+            amount: 0,
+            openPrice: 0,
+            currentProfit: 0,
+            currentPrice: 0,
+            endTime: position.querySelector('div.item-row:first-child div:last-child').innerText,
+
+            domElement: position,
+            buttonTogglePosition: position.querySelector('div.item-row:first-child span.price-up'),
+        });
+    });
+
+    if (closedPositions.length === 0) {
+        console.log('[getLatestClosedPositions] No closed positions');
+        return;
+    }
+
+    const getPositionDetail = (positions, index) => {
+        if (index >= positions.length) {
+            if (callback) {
+                var price = positions[0].currentPrice;
+                var amount = positions.reduce((acc, position) => acc + position.amount, 0);
+                var outcome = positions.reduce((acc, position) => acc + position.outcome, 0);
+                var endTime = positions[0].endTime;
+                callback(positions, price, amount, outcome, endTime);
+            }
+
+            return;
+        }
+
+        const position = positions[index];
+        const positionDom = position.domElement;
+        const buttonTogglePosition = position.buttonTogglePosition;
+        const isPositionShowingFullInfo = positionDom.classList.contains('open-full-info');
+
+        if (!isPositionShowingFullInfo) {
+            buttonTogglePosition.click();
+        }
+
+        setTimeout(() => {
+            if (!positionDom.querySelector('div.price-info__prices div.price-info__prices-item:first-child')) {
+                console.warn('[getPositionDetail] Position box not opened');
+                return;
+            }
+
+            position.openPrice = 1 * positionDom.querySelector('div.price-info__prices div.price-info__prices-item:first-child').innerText.replace('Open price:\n', '').trim();
+            position.currentPrice = 1 * positionDom.querySelector('div.price-info__prices div.price-info__prices-item:nth-child(2)').innerText.replace('Current price:\n', '').trim();
+            position.amount = 1 * positionDom.querySelector('div.forecast > div:first-child > div:nth-child(2) span').innerText.replace('$', '').trim();
+            position.currentProfit = 1 * positionDom.querySelector('div.forecast > div:first-child > div:nth-child(3) span').innerText.replace('$', '').replace('+', '').trim();
+            position.outcome = position.currentProfit > 0 ? position.amount + position.currentProfit : 0;
+
+            price = position.currentPrice;
+
+            buttonTogglePosition.click();
+            setTimeout(() => {
+                getPositionDetail(positions, index + 1);
+            }, 0);
+        }, 0);
+    }
+
+    getPositionDetail(positions, 0);
+}
+
 function getEndTime() {
     const endTime = document.querySelector('div.block--expiration-inputs div.value__val');
     if (!endTime) {
@@ -97,6 +168,26 @@ function getEndTime() {
     }
 
     return endTime.innerText;
+}
+
+function getCurrentBalance() {
+    const balance = document.querySelector('div.balance-info-block__balance span');
+    if (!balance || !balance.innerText) {
+        console.warn('[getCurrentBalance] No balance found');
+        return 0;
+    }
+
+    return balance.innerText.trim().replace(',', '') * 1.0;
+}
+
+function getCurrentQTMode() {
+    const qtMode = document.querySelector('div.balance-info-block__label');
+    if (!qtMode || !qtMode.innerText) {
+        console.warn('[getCurrentQTMode] No QT mode found');
+        return 0;
+    }
+
+    return qtMode.innerText.trim();
 }
 
 // Actions
@@ -129,7 +220,21 @@ function openActiveTrades() {
     console.log('[openActiveTrades] Opening opened trades tab');
 
     const openedTradesTab = document.querySelector('div.widget-slot__header ul li:first-child a');
-    openedTradesTab.click(); // TODO: check if this is correct
+    openedTradesTab.click();
+
+    return false;
+}
+
+function openClosedTrades() {
+    const activeTab = document.querySelector('div.widget-slot__header ul li.active a');
+    if (activeTab.innerText === 'Closed') {
+        return true;
+    }
+
+    console.log('[openClosedTrades] Opening closed trades tab');
+
+    const closedTradesTab = document.querySelector('div.widget-slot__header ul li:nth-child(2) a');
+    closedTradesTab.click();
 
     return false;
 }
