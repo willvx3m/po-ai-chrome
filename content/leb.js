@@ -35,7 +35,6 @@ function calculateNextPosition(ps, price, newProfit, settings) {
     const sellPositions = positions.filter(position => position.direction === 'SELL');
     const totalBuyAmount = buyPositions.reduce((acc, position) => acc + position.amount, 0);
     const totalSellAmount = sellPositions.reduce((acc, position) => acc + position.amount, 0);
-    const cutPosition = positions.filter(position => position.amount < settings.defaultAmount)[0];
 
     var needBuy;
     var needSell;
