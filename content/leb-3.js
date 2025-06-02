@@ -40,6 +40,10 @@ function calculateNextPosition(ps, price, newProfit, settings) {
     const needNewPosition = positions.every(position => position.openPrice > price);
     if (needNewPosition) {
         const newPositionAmount = positions[positions.length - 1].amount * 2;
+        if (newPositionAmount > 8) {
+            return null;
+        }
+
         return {
             amount: newPositionAmount,
             direction: 'BUY',
