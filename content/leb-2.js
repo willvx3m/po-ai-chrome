@@ -1,6 +1,5 @@
 // Main change from v1.0
 // Position amount: 1/1/1/2/3/4 -> high risk, high reward
-// Upcoming v2.1: improve conversion rate
 
 function createStartingPosition(settings) {
     const newPositionAmount = 1;
@@ -35,6 +34,11 @@ function createStartingPosition(settings) {
 
 function calculateNextPosition(ps, price, newProfit, settings) {
     const positions = ps;
+    const buyPositions = positions.filter(position => position.direction === 'BUY');
+    const sellPositions = positions.filter(position => position.direction === 'SELL');
+    const totalBuyAmount = buyPositions.reduce((acc, position) => acc + position.amount, 0);
+    const totalSellAmount = sellPositions.reduce((acc, position) => acc + position.amount, 0);
+
     var needBuy;
     var needSell;
     var positionAmount;
@@ -53,8 +57,14 @@ function calculateNextPosition(ps, price, newProfit, settings) {
         return null;
     }
 
-    needBuy = positions.every(position => position.openPrice > price);
-    needSell = positions.every(position => position.openPrice < price);
+    if (totalBuyAmount === totalSellAmount) {
+        needBuy = positions.every(position => position.openPrice > price);
+        needSell = positions.every(position => position.openPrice < price);
+    } else if (totalBuyAmount > totalSellAmount) {
+        needSell = positions.every(position => position.openPrice < price);
+    } else if (totalBuyAmount < totalSellAmount) {
+        needBuy = positions.every(position => position.openPrice > price);
+    }
 
     if (needBuy) {
         return {
