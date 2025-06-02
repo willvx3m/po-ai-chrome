@@ -62,6 +62,8 @@ This approach is used when there is a clear uptrend.
 [DONE] - BUG: changing pair would break the session, only change it when there is no active position
 - Create starting position via RSI
 - CRUCIAL: Pick the correct direction & duration that you can gurantee 100% pairing ???
+- BUG: `run` can be called in parallel (eg. onPageLoad + manualStart)
+- RESTART: when no position, after a certain time (saved in settings, previousRestart)
 
 ## Estimated outcome
 
