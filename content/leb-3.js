@@ -4,7 +4,7 @@
 // Martingale strategy
 
 function createStartingPosition(settings) {
-    settings.defaultDuration = 2;
+    settings.defaultDuration = 1;
 
     const newPositionAmount = 1;
     const newPositionDuration = settings.defaultDuration;
