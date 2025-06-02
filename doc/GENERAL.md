@@ -115,8 +115,15 @@ StartAmount: 2, Duration: 10m (Then likely 1)
 LEB - Pairing position strategy\
 Position Amount: 2/2/1/2/2/2, Duration: 5m
 
-5. Jun 2nd 8:00 - 
+5. Jun 2nd 8:14 - 
    
+Account: William\
 LEB - Pairing position strategy\
 Position Amount: 1/1/1/2/3/4, Duration: 5m\
 Purpose: maximize profit from latter positions
+
+6. Jun 2nd 9:40 - 
+   
+Account: Rapig\
+Martingale\
+Position Amount: 1/2/4/8/16, Duration: 2m\
