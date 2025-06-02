@@ -128,7 +128,7 @@ async function main() {
                 }
             }
 
-            console.log(`=P${N}=>`, `Count:`, countP);
+            console.log(`=P${N}=>`, `Count:`, countP, '(', (countP / regularPositions.length * 100).toFixed(2) * 1, '% )');
             console.log(`=P${N}=>`, `Failed:`, countFailedP, '(', (countFailedP / countP * 100).toFixed(2) * 1, '% )', '(', (countFailedP / regularPositions.length * 100).toFixed(2) * 1, '% )');
             console.log(`=P${N}=>`, `Total amount:`, regularTotalAmountP.toFixed(2) * 1);
             console.log(`=P${N}=>`, `Total profit:`, regularTotalProfitP.toFixed(2) * 1);
