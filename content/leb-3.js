@@ -60,7 +60,7 @@ function calculateNextPosition(ps, price, newProfit, settings) {
 
         return {
             amount: newPositionAmount,
-            direction: settings.defaultDuration,
+            direction: settings.defaultDirection,
             profit: newProfit
         }
     }
