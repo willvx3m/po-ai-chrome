@@ -42,6 +42,11 @@ function run() {
           console.log('[run] Positions:', positions);
           console.log(`[run] Price: ${price}, Amount: ${amount} -> ${outcome}, ${timeLeft} left`);
 
+          if (price === 0) {
+            console.warn('[run] Failed to get price, skipping');
+            return;
+          }
+
           const newPosition = calculateNextPosition(positions, price, payoutNumber, settings);
           const maxPositionLimit = settings.maxPositionLimit;
           const newPositionRequired = newPosition && positions.length < maxPositionLimit;

@@ -66,6 +66,11 @@ function getActivePositions(callback) {
         }
 
         setTimeout(() => {
+            if (!positionDom.querySelector('div.price-info__prices div.price-info__prices-item:first-child')) {
+                console.warn('[getPositionDetail] Position box not opened');
+                return;
+            }
+
             position.openPrice = 1 * positionDom.querySelector('div.price-info__prices div.price-info__prices-item:first-child').innerText.replace('Open price:\n', '').trim();
             position.currentPrice = 1 * positionDom.querySelector('div.price-info__prices div.price-info__prices-item:nth-child(2)').innerText.replace('Current price:\n', '').trim();
             position.amount = 1 * positionDom.querySelector('div.forecast > div:first-child > div:nth-child(2) span').innerText.replace('$', '').trim();
