@@ -51,7 +51,7 @@ function checkAndSaveSettings(settings, currentBalance) {
 
 function calculateNextPosition(ps, price, newProfit, settings) {
     const positions = ps.sort((a, b) => a.amount - b.amount);
-    const needNewPosition = positions.every(position => position.openPrice > price);
+    const needNewPosition = settings.defaultDirection === 'BUY' ? positions.every(position => position.openPrice > price) : positions.every(position => position.openPrice < price);
     if (needNewPosition) {
         const newPositionAmount = positions[positions.length - 1].amount * 2;
         if (newPositionAmount > 8) {
