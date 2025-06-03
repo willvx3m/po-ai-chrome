@@ -55,15 +55,21 @@ This approach is used when there is a clear uptrend.
 [DONE] - Create position
 [DONE] - Figure out X/Y pair (use brute force)
 [DONE] - Create starting position via Market Sentiment
-[DONE]- Bug fix on switching currency pair (Not working on 2nd attempt) :: Not perfect, but working
+[DONE] - Bug fix on switching currency pair (Not working on 2nd attempt) :: Not perfect, but working
 [IGNORE] - Bug fix: Uncaught Error: Extension context invalidated.
 [DONE] - Automatic browser reload after X time (including re-start the run function)
       => Restarting whenever duration setting fails
 [DONE] - BUG: changing pair would break the session, only change it when there is no active position
-- Create starting position via RSI
-- CRUCIAL: Pick the correct direction & duration that you can gurantee 100% pairing ???
+[SKIP] - Create starting position via RSI
+[SKIP] - CRUCIAL: Pick the correct direction & duration that you can gurantee 100% pairing ???
 - BUG: `run` can be called in parallel (eg. onPageLoad + manualStart)
+   => Short-term: ensure you don't click manual while enabled is true
 - RESTART: when no position, after a certain time (saved in settings, previousRestart)
+- Scaling solution
+- Dynamic IP/User-Agent
+[DONE] - Auto-capturing system (WIN)
+- Auto-capturing system (MAC)
+- Reporting script
 
 ## Estimated outcome
 
@@ -138,8 +144,17 @@ Issues:
 Conduct TEST for 5 hrs (VOLUME reaches 10k = 200 * 50)
 
 
-6.1 12:45PM - 
+6.1 Jun 2nd 12:45PM - 
 
 Resumed test with upgrades
 - max cap
 - flipping BUY/SELL
+
+
+6.2 Jun 2nd 11:30 PM -
+
+24hrs TEST
+
+Issues:
+- Change pair after straight failures (5/10)
+- Restart after X hrs (only when idle)
