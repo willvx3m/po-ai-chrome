@@ -64,7 +64,7 @@ This approach is used when there is a clear uptrend.
 [SKIP] - CRUCIAL: Pick the correct direction & duration that you can gurantee 100% pairing ???
 - BUG: `run` can be called in parallel (eg. onPageLoad + manualStart)
    => Short-term: ensure you don't click manual while enabled is true
-- RESTART: when no position, after a certain time (saved in settings, previousRestart)
+[DONE] - RESTART: when no position, after a certain time (saved in settings, previousRestart)
 - Scaling solution
 - Dynamic IP/User-Agent
 [DONE] - Auto-capturing system (WIN)
@@ -157,4 +157,3 @@ Resumed test with upgrades
 
 Issues:
 - Change pair after straight failures (5/10)
-- Restart after X hrs (only when idle)
