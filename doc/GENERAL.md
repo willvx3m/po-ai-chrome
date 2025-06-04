@@ -137,9 +137,9 @@ Martingale\
 Position Amount: 1/2/4/8/16, Duration: 2m, 1m\
 
 Issues:
-- max cap: 8/16 (after reviewing the volume statistics)
+[DONE] - max cap: 8/16 (after reviewing the volume statistics)
 - review profit per cap
-- flip BUY/SELL on 5/10 failure OR ??
+[DONE] - flip BUY/SELL on 5/10 failure OR ??
 
 Conduct TEST for 5 hrs (VOLUME reaches 10k = 200 * 50)
 
@@ -158,7 +158,7 @@ Resumed test with upgrades
 Issues:
 - Change pair after straight failures (5/10)
  
-7. Jun 4nd 04:18 AM -
+7. Jun 4nd 04:18 AM - (Moz)
 
 24hrs TEST
 
@@ -166,3 +166,6 @@ START: 44463
 
 Always BUY
 Amount limit up to 16
+
+Issues:
+- Up-trending it seems to be winning, BUT no solution for a down trend. If DOWN persists, helpless loss
