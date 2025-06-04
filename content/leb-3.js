@@ -1,7 +1,15 @@
-// Main change from v2.0
 // Martingale strategy
 // Position amount: 1/2/4/8/16
-// SKIP - Position direction: First UP, after Full Failure (1/2/4/8) flip direction
+const DEFAULT_SETTINGS = {
+    enabled: false,
+    defaultAmount: 1,
+    defaultDuration: 1,
+    maxPositionLimit: 5,
+    maxPositionAmount: 16,
+    interval: 10000,
+    defaultDirection: 'BUY',
+    previousRestart: (new Date()) * 1,
+}
 
 function createStartingPosition(settings) {
     const newPositionAmount = settings.defaultAmount;
@@ -31,21 +39,6 @@ function createStartingPosition(settings) {
             });
         });
     });
-}
-
-function checkAndSaveSettings(settings, currentBalance) {
-    // Skip flipping direction
-    // if (settings.savedBalance) {
-    //     const profit = currentBalance - settings.savedBalance;
-    //     const fullFailureSum = 1 + 2 + 4 + 8;
-    //     if (profit < 0 && Math.abs(profit) >= fullFailureSum) {
-    //         settings.defaultDirection = settings.defaultDirection === 'BUY' ? 'SELL' : 'BUY';
-    //         console.log('[cAS] Full failure detected, flipping direction to', settings.defaultDirection);
-    //     }
-    // }
-
-    settings.savedBalance = currentBalance;
-    saveSettings(settings);
 }
 
 function calculateNextPosition(ps, price, newProfit, settings) {

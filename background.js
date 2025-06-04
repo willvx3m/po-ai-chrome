@@ -1,16 +1,8 @@
 chrome.runtime.onInstalled.addListener(() => {
   console.log('Extension installed');
-  chrome.storage.local.set({
-    settings: {
-      enabled: false,
-      defaultAmount: 1,
-      defaultDuration: 1,
-      maxPositionLimit: 6,
-      maxPositionAmount: 16,
-      interval: 10000,
-      defaultDirection: 'BUY'
-    }
-  });
+  // chrome.storage.local.set({
+  //   settings: DEFAULT_SETTINGS
+  // });
 });
 
 // chrome.action.onClicked.addListener((tab) => {

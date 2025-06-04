@@ -18,7 +18,7 @@
   "content_scripts": [
     {
       "matches": ["https://*.pocketoption.com/*"],
-      "js": ["content/settings.js", "content/utils.js", "content/leb-3.js", "content/index.js"],
+      "js": ["content/settings.js", "content/utils.js", "content/leb.js", "content/index.js"],
       "note": "switch between maco.js and leb.js to change the strategy"
     }
   ]

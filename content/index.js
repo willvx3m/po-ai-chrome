@@ -18,7 +18,11 @@ window.addEventListener("load", () => {
 // Main function
 function run() {
   readSettings((settings) => {
-    // console.log('[run] settings', settings);
+    if (!settings) {
+      console.log('[run] No settings found, using default settings');
+      saveSettings(settings = DEFAULT_SETTINGS);
+    }
+
     const enabled = settings.enabled;
     if (!enabled) {
       console.log('[run] Extension is disabled');

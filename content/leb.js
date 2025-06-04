@@ -1,7 +1,14 @@
 // Expanding pair-postions
-// Position amount: 2/2/1/2/2..
-// Update settings.defaultAmount to 2
-// Update settings.defaultDuration to 5
+const DEFAULT_SETTINGS = {
+    enabled: false,
+    defaultAmount: 2,
+    defaultDuration: 5,
+    maxPositionLimit: 6,
+    maxPositionAmount: 10,
+    interval: 10000,
+    defaultDirection: 'BUY',
+    previousRestart: (new Date()) * 1,
+}
 
 function createStartingPosition(settings) {
     const newPositionAmount = settings.defaultAmount;
@@ -15,8 +22,8 @@ function createStartingPosition(settings) {
             endTime = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()} ${endTime}`;
         }
         const newPositionSeconds = Math.abs(new Date(endTime) - new Date()) / 1000;
-        if (!newPositionSeconds || newPositionSeconds < settings.defaultDuration * 60 - 10) {
-            console.log(`[cSP] Duration (${newPositionSeconds}s) is too short, `, 'EndTime:', endTime);
+        if (!newPositionSeconds || newPositionSeconds < settings.defaultDuration * 60 - 20 || newPositionSeconds > settings.defaultDuration * 60 + 60) {
+            console.log(`[cSP] Duration (${newPositionSeconds}s) is too short/long, `, 'EndTime:', endTime);
             console.log('Restarting ...');
             window.location.reload();
             return;
