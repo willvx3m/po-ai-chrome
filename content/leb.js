@@ -1,3 +1,8 @@
+// Expanding pair-postions
+// Position amount: 2/2/1/2/2..
+// Update settings.defaultAmount to 2
+// Update settings.defaultDuration to 5
+
 function createStartingPosition(settings) {
     const newPositionAmount = settings.defaultAmount;
     const newPositionDuration = settings.defaultDuration;

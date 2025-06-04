@@ -73,6 +73,16 @@ document.getElementById('buttonMaxPositionLimit').addEventListener('click', () =
   });
 });
 
+document.getElementById('buttonMaxPositionAmount').addEventListener('click', () => {
+  const maxPositionAmount = document.getElementById('maxPositionAmount').value;
+  console.log('[buttonMaxPositionAmount] Max Position Amount:', maxPositionAmount);
+  settings.maxPositionAmount = maxPositionAmount * 1;
+  chrome.storage.local.set({ settings }, () => {
+    console.log('[buttonMaxPositionAmount] New settings', settings);
+    displaySettings(settings);
+  });
+});
+
 document.getElementById('buttonInterval').addEventListener('click', () => {
   const interval = document.getElementById('interval').value;
   console.log('[buttonInterval] Interval:', interval);
@@ -118,6 +128,7 @@ function displaySettings(settings) {
     Default Amount: ${settings.defaultAmount || "N/A"}<br>
     Default Duration: ${settings.defaultDuration || "N/A"}<br>
     Max Position Limit: ${settings.maxPositionLimit || "N/A"}<br>
+    Max Position Amount: ${settings.maxPositionAmount || "N/A"}<br>
     Interval: ${settings.interval || "N/A"}<br>
     Default Direction: ${settings.defaultDirection || "N/A"}`;
 }

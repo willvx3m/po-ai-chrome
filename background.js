@@ -3,9 +3,10 @@ chrome.runtime.onInstalled.addListener(() => {
   chrome.storage.local.set({
     settings: {
       enabled: false,
-      defaultAmount: 2,
-      defaultDuration: 5,
+      defaultAmount: 1,
+      defaultDuration: 1,
       maxPositionLimit: 6,
+      maxPositionAmount: 16,
       interval: 10000,
       defaultDirection: 'BUY'
     }

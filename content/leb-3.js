@@ -1,12 +1,10 @@
 // Main change from v2.0
 // Martingale strategy
-// Position amount: 1/2/4/8
-// Position direction: First UP, after Full Failure (1/2/4/8) flip direction
+// Position amount: 1/2/4/8/16
+// SKIP - Position direction: First UP, after Full Failure (1/2/4/8) flip direction
 
 function createStartingPosition(settings) {
-    settings.defaultDuration = 1;
-
-    const newPositionAmount = 1;
+    const newPositionAmount = settings.defaultAmount;
     const newPositionDuration = settings.defaultDuration;
     const newPositionDirection = settings.defaultDirection;
 
@@ -19,7 +17,7 @@ function createStartingPosition(settings) {
             endTime = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()} ${endTime}`;
         }
         const newPositionSeconds = Math.abs(new Date(endTime) - new Date()) / 1000;
-        if (!newPositionSeconds || newPositionSeconds < settings.defaultDuration * 60 - 10 || newPositionSeconds > settings.defaultDuration * 60 + 60) {
+        if (!newPositionSeconds || newPositionSeconds < settings.defaultDuration * 60 - 20 || newPositionSeconds > settings.defaultDuration * 60 + 60) {
             console.log(`[cSP] Duration (${newPositionSeconds}s) is too short/long, `, 'EndTime:', endTime);
             console.log('Restarting ...');
             window.location.reload();
@@ -36,14 +34,15 @@ function createStartingPosition(settings) {
 }
 
 function checkAndSaveSettings(settings, currentBalance) {
-    if (settings.savedBalance) {
-        const profit = currentBalance - settings.savedBalance;
-        const fullFailureSum = 1 + 2 + 4 + 8;
-        if (profit < 0 && Math.abs(profit) >= fullFailureSum) {
-            settings.defaultDirection = settings.defaultDirection === 'BUY' ? 'SELL' : 'BUY';
-            console.log('[cAS] Full failure detected, flipping direction to', settings.defaultDirection);
-        }
-    }
+    // Skip flipping direction
+    // if (settings.savedBalance) {
+    //     const profit = currentBalance - settings.savedBalance;
+    //     const fullFailureSum = 1 + 2 + 4 + 8;
+    //     if (profit < 0 && Math.abs(profit) >= fullFailureSum) {
+    //         settings.defaultDirection = settings.defaultDirection === 'BUY' ? 'SELL' : 'BUY';
+    //         console.log('[cAS] Full failure detected, flipping direction to', settings.defaultDirection);
+    //     }
+    // }
 
     settings.savedBalance = currentBalance;
     saveSettings(settings);
@@ -54,7 +53,7 @@ function calculateNextPosition(ps, price, newProfit, settings) {
     const needNewPosition = settings.defaultDirection === 'BUY' ? positions.every(position => position.openPrice > price) : positions.every(position => position.openPrice < price);
     if (needNewPosition) {
         const newPositionAmount = positions[positions.length - 1].amount * 2;
-        if (newPositionAmount > 8) {
+        if (newPositionAmount > settings.maxPositionAmount) {
             return null;
         }
 

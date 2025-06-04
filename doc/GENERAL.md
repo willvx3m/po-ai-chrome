@@ -157,3 +157,10 @@ Resumed test with upgrades
 
 Issues:
 - Change pair after straight failures (5/10)
+ 
+7. Jun 4nd 04:18 AM -
+
+24hrs TEST
+
+Always BUY
+Amount limit up to 16
