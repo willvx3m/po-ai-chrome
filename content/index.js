@@ -61,13 +61,13 @@ function run() {
             return;
           }
 
-          const newPosition = calculateNextPosition(positions, price, payoutNumber, settings);
-          const maxPositionLimit = settings.maxPositionLimit;
-          const newPositionRequired = newPosition && positions.length < maxPositionLimit;
-          if (newPositionRequired) {
-            createPosition(newPosition.amount, newPosition.direction, () => {
-              console.log(`[run] => New position created: ${newPosition.amount} - ${newPosition.direction}`);
-            });
+          if (positions.length < settings.maxPositionLimit) {
+            const newPosition = calculateNextPosition(positions, price, payoutNumber, settings);
+            if (newPosition) {
+              createPosition(newPosition.amount, newPosition.direction, () => {
+                console.log(`[run] => New position created: ${newPosition.amount} - ${newPosition.direction}`);
+              });
+            }
           }
 
           delete positions;

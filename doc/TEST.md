@@ -67,7 +67,19 @@ Amount limit up to 16
 Issues:
 - Up-trending it seems to be winning, BUT no solution for a down trend. If DOWN persists, helpless loss
 
-8. Jun 4nd 04:18 AM - (Moz)
+8. Jun 4nd 11:50 AM - (Moz)
 
 24hrs TEST - Leb
 START: 44231.19
+
+9. Jun 5th 12:10 PM - (Moz)
+
+Amount: 1, Duration: 4
+Strategy: Tri
+START: 
+
+10. Jun 5th 12:10 PM - (Box)
+
+Amount: 1, Duration: 2
+Strategy: Tri
+START: 

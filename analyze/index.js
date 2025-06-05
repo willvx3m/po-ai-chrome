@@ -1,7 +1,8 @@
 const fs = require('fs').promises;
 const path = require('path');
-const fileName = 'test4-box.csv';
-// const fileName = 'test-moz.csv';
+// const fileName = 'test8-leb-moz.csv';
+// const fileName = 'test4-box.csv';
+const fileName = 'test-moz.csv';
 
 /**
  * Reads a CSV file and converts it to an array of objects.
@@ -138,9 +139,47 @@ async function main() {
         console.log('=> Failed:', countFailed, '(', (countFailed / regularPositions.length * 100).toFixed(2) * 1, '% )');
         console.log('=> Total amount:', regularTotalAmount.toFixed(2) * 1);
         console.log('=> Total profit:', regularTotalProfit.toFixed(2) * 1);
+
+        analyzeLeb(regularPositions, 3);
+        analyzeLeb(regularPositions, 4);
+        analyzeLeb(regularPositions, 5);
+        analyzeLeb(regularPositions, 6);
     } catch (err) {
         console.error(err);
     }
+}
+
+function analyzeLeb(regularPositions, stopIndex) {
+    var successCount = 0;
+    var rushCount = 0;
+
+    for (const positions of regularPositions) {
+        positions.sort((a, b) => a['Open time'].localeCompare(b['Open time']));
+        if (positions.length < stopIndex) {
+            continue;
+        }
+
+        const stopPosition = positions[stopIndex - 1];
+        const stopPrice = stopPosition['Open price'] * 1;
+        const stopDirection = stopPosition['Direction'];
+        const closePrice = positions[0]['Close price'] * 1;
+        const startPrice = positions[0]['Open price'] * 1;
+
+        if (stopDirection === 'call' && closePrice > stopPrice) {
+            successCount++;
+        } else if (stopDirection === 'put' && closePrice < stopPrice) {
+            successCount++;
+        }
+
+        if (startPrice < closePrice && stopPrice > closePrice) {
+            rushCount++;
+        }
+    }
+
+    console.log(`=> LEB Success (Stop: ${stopIndex}): ${successCount} (${successCount / regularPositions.length * 100}%)`);
+    console.log(`=> LEB Rush (Stop: ${stopIndex}): ${rushCount} (${rushCount / regularPositions.length * 100}%)`);
+
+    return successCount;
 }
 
 main();

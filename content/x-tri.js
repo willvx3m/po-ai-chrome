@@ -1,20 +1,23 @@
-// Variant of a pair-position strategy
-// Position amount: 1/1/1/2/3/4 -> high risk, high reward
+// 3-position strategy
+// Position amount: 1/1/1
 const DEFAULT_SETTINGS = {
     enabled: false,
     defaultAmount: 1,
-    defaultDuration: 5,
-    maxPositionLimit: 6,
-    maxPositionAmount: 10,
+    defaultDuration: 4,
+    maxPositionLimit: 3,
+    maxPositionAmount: 1,
     interval: 10000,
     defaultDirection: 'BUY',
+    maxPriceDifference: 0,
     previousRestart: (new Date()) * 1,
 }
 
 function createStartingPosition(settings) {
     const newPositionAmount = settings.defaultAmount;
     const newPositionDuration = settings.defaultDuration;
-    const newPositionDirection = settings.defaultDirection;
+
+    settings.maxPriceDifference = 0;
+    saveSettings(settings);
 
     setEndTime(newPositionDuration, () => {
         // Check end time
@@ -46,47 +49,39 @@ function createStartingPosition(settings) {
 
 function calculateNextPosition(ps, price, newProfit, settings) {
     const positions = ps;
-    const buyPositions = positions.filter(position => position.direction === 'BUY');
-    const sellPositions = positions.filter(position => position.direction === 'SELL');
-    const totalBuyAmount = buyPositions.reduce((acc, position) => acc + position.amount, 0);
-    const totalSellAmount = sellPositions.reduce((acc, position) => acc + position.amount, 0);
+    const [minutes, seconds] = positions[0]['timeLeft'].split(':').map(Number);
+    const secondsLeft = minutes * 60 + seconds;
 
-    var needBuy;
-    var needSell;
-    var positionAmount;
-
-    if (positions.length === 2) {
-        positionAmount = 1;
-    } else if (positions.length === 3) {
-        positionAmount = 2;
-    } else if (positions.length === 4) {
-        positionAmount = 3;
-    } else if (positions.length === 5) {
-        positionAmount = 4;
-    }
-
-    if (!positionAmount) {
+    const priceDifference = Math.abs(positions[0].openPrice - price);
+    // First quarter, monitor and update max difference
+    // Next quarter, create position as soon as it breaks max
+    // After half duration, if no 3rd position yet => just create it
+    if (secondsLeft > settings.defaultDuration * 60 * 3 / 4) {
+        if (settings.maxPriceDifference < priceDifference) {
+            console.log('[cNP] MAX UPDATE:', priceDifference, settings.maxPriceDifference);
+            settings.maxPriceDifference = priceDifference;
+            saveSettings(settings);
+        }
         return null;
+    } else if (secondsLeft > settings.defaultDuration * 60 / 2) {
+        console.log('[cNP] CHECK BREAK:', priceDifference, settings.maxPriceDifference);
+        if (settings.maxPriceDifference && settings.maxPriceDifference > priceDifference) {
+            return null;
+        }
     }
 
-    if (totalBuyAmount === totalSellAmount) {
-        needBuy = positions.every(position => position.openPrice > price);
-        needSell = positions.every(position => position.openPrice < price);
-    } else if (totalBuyAmount > totalSellAmount) {
-        needSell = positions.every(position => position.openPrice < price);
-    } else if (totalBuyAmount < totalSellAmount) {
-        needBuy = positions.every(position => position.openPrice > price);
-    }
+    const needBuy = positions.every(position => position.openPrice > price);
+    const needSell = positions.every(position => position.openPrice < price);
 
     if (needBuy) {
         return {
-            amount: positionAmount,
+            amount: settings.defaultAmount,
             direction: 'BUY',
             profit: newProfit
         }
     } else if (needSell) {
         return {
-            amount: positionAmount,
+            amount: settings.defaultAmount,
             direction: 'SELL',
             profit: newProfit
         }
