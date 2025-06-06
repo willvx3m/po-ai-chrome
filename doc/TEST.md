@@ -72,14 +72,28 @@ Issues:
 24hrs TEST - Leb
 START: 44231.19
 
-9. Jun 5th 12:10 PM - (Moz)
+9. Jun 5th 12:05 PM - (Moz)
 
 Amount: 1, Duration: 4
 Strategy: Tri
-START: 
+START: 44106.33
 
-10. Jun 5th 12:10 PM - (Box)
+10. Jun 5th 12:05 PM - (Box)
 
 Amount: 1, Duration: 2
 Strategy: Tri
-START: 
+START: 49484.85
+
+RESULT: Not enough win Rate, desired 57+%, but below 50%
+
+11. Jun 6th 7:45 AM - (Moz)
+
+STRATEGY: BOLK
+Amount: 1/2/2 OR 1/2, Duration: 10m
+START: 44068.56
+
+12.  Jun 6th 7:45 AM - (Box)
+
+STRATEGY: BOLK
+Amount: 1/2/2 OR 1/2, Duration: 10m
+START: 49433.20
