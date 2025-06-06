@@ -97,3 +97,15 @@ START: 44068.56
 STRATEGY: BOLK
 Amount: 1/2/2 OR 1/2, Duration: 10m
 START: 49433.20
+
+13. Jun 6th 13:15 - (Moz)
+
+STRATEGY: DBA
+Amount: 4/5, Duration: 10m
+START: 44057.16
+
+14.  Jun 6th 13:15 - (Box)
+
+STRATEGY: XOCY
+Amount: 2/1/2 OR 2/1, Duration: 5m
+START: 49404.40
