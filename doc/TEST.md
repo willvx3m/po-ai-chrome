@@ -109,3 +109,9 @@ START: 44057.16
 STRATEGY: XOCY
 Amount: 2/1/2 OR 2/1, Duration: 5m
 START: 49404.40
+
+13.   Jun 7th 13:25 - (Box)
+
+STRATEGY: XOCY 2.0
+Amount: 1/2/2 OR 1/2, Duration: 5m
+START: 49404.40

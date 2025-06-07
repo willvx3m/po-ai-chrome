@@ -1,5 +1,6 @@
 // XOCY: Progressive 3-pair strategy
-// Position amount: 2/1/2
+// XOCY 1.0: Position amount: 2/1/2
+// XOCY 2.0: Position amount: 1/2/2, COVER position after one minute
 const DEFAULT_SETTINGS = {
     enabled: false,
     defaultAmount: 2,
@@ -13,7 +14,7 @@ const DEFAULT_SETTINGS = {
 }
 
 function createStartingPosition(settings) {
-    const newPositionAmount = settings.defaultAmount;
+    const newPositionAmount = settings.defaultAmount / 2;
     const newPositionDuration = settings.defaultDuration;
     var newPositionDirection;
 
@@ -56,8 +57,9 @@ function createStartingPosition(settings) {
 }
 
 function calculateNextPosition(ps, price, newProfit, settings) {
-    const positions = ps.sort((a, b) => b.amount - a.amount);
+    const positions = ps.sort((a, b) => a.amount - b.amount);
     const firstPosition = positions[0];
+    const secondPosition = positions[1];
     const [minutes, seconds] = firstPosition['timeLeft'].split(':').map(Number);
     const secondsLeft = minutes * 60 + seconds;
 
@@ -65,7 +67,7 @@ function calculateNextPosition(ps, price, newProfit, settings) {
     // measure max price spike for interval (10s)
     // if price stays above openPrice + maxSpike => do nothing
     // if price falls below openPrice - maxSpike, create 3rd position - amount: 2
-    const priceDifference = Math.abs(price - firstPosition.openPrice);
+    const priceDifference = secondPosition ? Math.abs(price - secondPosition.openPrice) : Math.abs(price - firstPosition.openPrice);
     const lastPrice = settings.lastPrice || firstPosition.openPrice;
     const priceSpike = Math.abs(price - lastPrice);
     if(settings.maxPriceSpike < priceSpike) {
@@ -77,21 +79,21 @@ function calculateNextPosition(ps, price, newProfit, settings) {
 
     var newPositionAmount;
     var newPositionDirection;
-    if (positions.length < 2){
+    if (positions.length < 2 && secondsLeft < settings.defaultDuration * 60 * 4 / 5 && priceDifference < settings.maxPriceSpike){
         if(firstPosition.direction === 'BUY' && price > firstPosition.openPrice) {
-            newPositionAmount = settings.defaultAmount / 2;
+            newPositionAmount = settings.defaultAmount;
             newPositionDirection = 'SELL';
         } else if (firstPosition.direction === 'SELL' && price < firstPosition.openPrice) {
-            newPositionAmount = settings.defaultAmount / 2;
+            newPositionAmount = settings.defaultAmount;
             newPositionDirection = 'BUY';
         }
-    } else if(secondsLeft < settings.defaultDuration * 60 * 2 / 3 && priceDifference < settings.maxPriceSpike) {
-        if(firstPosition.direction === 'BUY' && price > firstPosition.openPrice) {
-            newPositionAmount = settings.defaultAmount;
-            newPositionDirection = 'SELL';
-        } else if (firstPosition.direction === 'SELL' && price < firstPosition.openPrice) {
+    } else if(secondsLeft < settings.defaultDuration * 60 * 2 / 3 && priceDifference < settings.maxPriceSpike * 2) {
+        if(secondPosition.direction === 'BUY' && price < secondPosition.openPrice) {
             newPositionAmount = settings.defaultAmount;
             newPositionDirection = 'BUY';
+        } else if (secondPosition.direction === 'SELL' && price > secondPosition.openPrice) {
+            newPositionAmount = settings.defaultAmount;
+            newPositionDirection = 'SELL';
         }
     }
 
