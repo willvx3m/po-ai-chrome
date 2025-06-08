@@ -2,6 +2,7 @@
 // XOCY 1.0: Position amount: 2/1/2
 // XOCY 2.0: Position amount: 1/2/2, COVER position after one minute
 const DEFAULT_SETTINGS = {
+    name: 'XOCY 2.0',
     enabled: false,
     defaultAmount: 2,
     defaultDuration: 5,
@@ -79,7 +80,7 @@ function calculateNextPosition(ps, price, newProfit, settings) {
 
     var newPositionAmount;
     var newPositionDirection;
-    if (positions.length < 2 && secondsLeft < settings.defaultDuration * 60 * 4 / 5 && priceDifference < settings.maxPriceSpike){
+    if (positions.length < 2 && secondsLeft < settings.defaultDuration * 60 * 4 / 5){ // Spike difference?
         if(firstPosition.direction === 'BUY' && price > firstPosition.openPrice) {
             newPositionAmount = settings.defaultAmount;
             newPositionDirection = 'SELL';
@@ -87,7 +88,7 @@ function calculateNextPosition(ps, price, newProfit, settings) {
             newPositionAmount = settings.defaultAmount;
             newPositionDirection = 'BUY';
         }
-    } else if(secondsLeft < settings.defaultDuration * 60 * 2 / 3 && priceDifference < settings.maxPriceSpike * 2) {
+    } else if(secondsLeft < settings.defaultDuration * 60 * 2 / 3 && priceDifference < settings.maxPriceSpike * 3) {
         if(secondPosition.direction === 'BUY' && price < secondPosition.openPrice) {
             newPositionAmount = settings.defaultAmount;
             newPositionDirection = 'BUY';

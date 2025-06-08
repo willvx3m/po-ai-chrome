@@ -110,8 +110,16 @@ STRATEGY: XOCY
 Amount: 2/1/2 OR 2/1, Duration: 5m
 START: 49404.40
 
-13.   Jun 7th 13:25 - (Box)
+15.   Jun 7th 13:30 - (Box)
 
 STRATEGY: XOCY 2.0
 Amount: 1/2/2 OR 1/2, Duration: 5m
-START: 49404.40
+START: 49373.59
+
+
+16.   Jun 8th 10:40 - (Moz)
+
+STRATEGY: XOCY 2.1 (Slack notification ON)
+Amount: 1/2/2 OR 1/2, Duration: 5m
+2nd Position: no spike restriction
+START: 43976.76

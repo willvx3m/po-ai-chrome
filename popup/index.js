@@ -53,6 +53,16 @@ document.getElementById('buttonDefaultAmount').addEventListener('click', () => {
   });
 });
 
+document.getElementById('buttonUserName').addEventListener('click', () => {
+  const userName = document.getElementById('userName').value;
+  console.log('[buttonUserName] User Name:', userName);
+  settings.userName = userName;
+  chrome.storage.local.set({ settings }, () => {
+    console.log('[buttonUserName] New settings', settings);
+    displaySettings(settings);
+  });
+});
+
 document.getElementById('buttonDefaultDuration').addEventListener('click', () => {
   const defaultDuration = document.getElementById('defaultDuration').value;
   console.log('[buttonDefaultDuration] Default Duration:', defaultDuration);
@@ -125,6 +135,8 @@ function displaySettings(settings) {
   const enabled = settings?.enabled;
   const statusElement = document.getElementById("settingDisplay");
   statusElement.innerHTML = `Enabled: ${enabled ? "Yes" : "No"}<br>
+    User Name: ${settings.userName || "N/A"}<br>
+    Strategy Name: ${settings.name || "N/A"}<br>
     Default Amount: ${settings.defaultAmount || "N/A"}<br>
     Default Duration: ${settings.defaultDuration || "N/A"}<br>
     Max Position Limit: ${settings.maxPositionLimit || "N/A"}<br>

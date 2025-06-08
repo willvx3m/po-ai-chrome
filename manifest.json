@@ -4,6 +4,9 @@
   "version": "2.0",
   "description": "Do your thing",
   "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": [
+    "https://slack.com/*"
+  ],
   "background": {
     "service_worker": "background.js"
   },

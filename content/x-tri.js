@@ -1,6 +1,7 @@
 // 3-position strategy
 // Position amount: 1/1/1
 const DEFAULT_SETTINGS = {
+    name: 'TRI',
     enabled: false,
     defaultAmount: 1,
     defaultDuration: 4,

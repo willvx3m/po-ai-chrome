@@ -14,6 +14,17 @@ window.addEventListener("load", () => {
   setTimeout(run, 10000);
 });
 
+function sendSlackMessage(message) {
+  chrome.runtime.sendMessage({
+    action: 'sendSlackNotification',
+    message: message,
+  }, (response) => {
+    if (chrome.runtime.lastError) {
+      console.error('Error sending slack message:', chrome.runtime.lastError.message);
+      return;
+    }
+  });
+}
 
 // Main function
 function run() {
@@ -50,6 +61,9 @@ function run() {
 
           checkAndSaveSettings(settings, currentBalance);
           createStartingPosition(settings);
+
+          const message = `[${settings.userName} (${settings.name})] ${currentBalance}, ${currentQTMode}`;
+          setTimeout(() => sendSlackMessage(message), 0);
         }
       } else {
         getActivePositions((positions, price, amount, outcome, timeLeft) => {
