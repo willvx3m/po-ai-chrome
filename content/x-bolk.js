@@ -1,10 +1,11 @@
 // BOLK: Conditional 3-position strategy
-// Position amount: 1/2/2 OR 1/2/1
+// Position amount: 1/2/{2*}
 const DEFAULT_SETTINGS = {
+    name: 'BOLK',
     enabled: false,
     defaultAmount: 1,
     defaultDuration: 10,
-    maxPositionLimit: 3,
+    maxPositionLimit: 10,
     maxPositionAmount: 2,
     interval: 10000,
     defaultDirection: 'BUY',
@@ -30,10 +31,10 @@ function createStartingPosition(settings) {
             endTime = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()} ${endTime}`;
         }
         const newPositionSeconds = Math.abs(new Date(endTime) - new Date()) / 1000;
-        if (!newPositionSeconds || newPositionSeconds < settings.defaultDuration * 60 - 30 || newPositionSeconds > settings.defaultDuration * 60 + 60) {
+        if (!newPositionSeconds || newPositionSeconds < settings.defaultDuration * 60 - 30 || newPositionSeconds > settings.defaultDuration * 60 + 120) {
             console.log(`[cSP] Duration (${newPositionSeconds}s) is too short/long, `, 'EndTime:', endTime);
-            console.log('Restarting ...');
-            window.location.reload();
+            // console.log('Restarting ...');
+            // window.location.reload();
             return;
         }
 
@@ -52,7 +53,7 @@ function createStartingPosition(settings) {
 }
 
 function calculateNextPosition(ps, price, newProfit, settings) {
-    const positions = ps;
+    const positions = ps.sort((a, b) => a.amount - b.amount);
     const [minutes, seconds] = positions[0]['timeLeft'].split(':').map(Number);
     const secondsLeft = minutes * 60 + seconds;
 

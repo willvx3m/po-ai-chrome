@@ -129,3 +129,9 @@ START: 43976.76
 STRATEGY: MAMA (Failure)
 Amount: 1/4 OR 1, Duration: 4m
 START: 
+
+18.     Jun 8th 13:30 - (BOX)
+
+STRATEGY: BOLK 2.0
+Amount: 1/2/{2}, Duration: 10m, Max Position: 10
+START: 49295.28
