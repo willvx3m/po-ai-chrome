@@ -123,3 +123,9 @@ STRATEGY: XOCY 2.1 (Slack notification ON)
 Amount: 1/2/2 OR 1/2, Duration: 5m
 2nd Position: no spike restriction
 START: 43976.76
+
+17.    Jun 8th 13:30 - (Box)
+
+STRATEGY: MAMA (Failure)
+Amount: 1/4 OR 1, Duration: 4m
+START: 
