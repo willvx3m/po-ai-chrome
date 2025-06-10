@@ -1,7 +1,7 @@
 // BOLK: Conditional 3-position strategy
 // Position amount: 1/2/{2*}
 const DEFAULT_SETTINGS = {
-    name: 'BOLK',
+    name: 'BOLK 2.0',
     enabled: false,
     defaultAmount: 1,
     defaultDuration: 10,
