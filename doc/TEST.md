@@ -134,4 +134,12 @@ START:
 1/2/{2}
 STRATEGY: BOLK 2.0
 Amount: 1/2/{2*}, Duration: 10m, Max Position: 10
+*Position not creating in the last 2m
 START: 49295.28
+
+19.      Jun 11th 06:30 - (BOX)
+1/2/{2}
+STRATEGY: Martingale 3.0
+Amount: 1/2/4/8/16, Duration: 10m, Max Position: 5
+New position after breaking max price difference from last position
+START: 49215.31

@@ -1,11 +1,14 @@
 const fs = require('fs');
 const { parse } = require('csv-parse');
 // const { createStartingPosition, calculateNextPosition, DEFAULT_SETTINGS } = require('./strategy');
-const { createStartingPosition, calculateNextPosition, DEFAULT_SETTINGS } = require('./strategy-bolk-2');
+// const { createStartingPosition, calculateNextPosition, DEFAULT_SETTINGS } = require('./strategy-bolk-2');
+const { createStartingPosition, calculateNextPosition, DEFAULT_SETTINGS } = require('./strategy-martingale-3');
 
 const period = '1m'; // 1w, 2w, 1m
-const symbol = 'EUR/USDT';
+// const symbol = 'EUR/USDT';
 // const symbol = 'BTC/USDT';
+// const symbol = 'aud/cad';
+const symbol = 'aud/cny';
 const csvFile = `${symbol.replace('/', '_')}_ohlcv_${period}.csv`;
 
 // Function to read CSV and extract close prices
@@ -22,12 +25,16 @@ function getPrices(csvFile, symbol, callback) {
     fs.createReadStream(csvFile)
         .pipe(parse({ columns: true, trim: true }))
         .on('data', (row) => {
-            if (row.symbol === symbol) {
+            // console.log(row['Open time'], row['Open price']);
+            // console.log(row);
+            // if (row.symbol === symbol) {
                 prices.push({
-                    price: parseFloat(row.close),
-                    timestamp: row.timestamp
+                    // price: parseFloat(row.close),
+                    // timestamp: row.timestamp
+                    price: parseFloat(row['Open price']),
+                    timestamp: row['Open time']
                 });
-            }
+            // }
         })
         .on('end', () => {
             callback(prices);
@@ -126,13 +133,12 @@ getPrices(csvFile, symbol, (prices) => {
         console.error('No prices found for the specified symbol.');
         return;
     }
+    prices = prices.reverse(); // only for aud/cny, aud/cad
 
     // Run backtest
     const results = run(prices, symbol);
 
     // Print results
-    console.log('Trade Log:');
-
     let totalAmount = 0;
     let totalPlus = 0;
     let totalMinus = 0;
@@ -169,21 +175,21 @@ getPrices(csvFile, symbol, (prices) => {
 
 
     // Generate chart data
-    const chartData = {
-        symbol: symbol,
-        prices: prices.map(d => d.price),
-        timestamps: prices.map(d => new Date(d.timestamp).toLocaleString('en-US', {
-            timeZone: 'UTC',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false
-        }))
-    };
+    // const chartData = {
+    //     symbol: symbol,
+    //     prices: prices.map(d => d.price),
+    //     timestamps: prices.map(d => new Date(d.timestamp).toLocaleString('en-US', {
+    //         timeZone: 'UTC',
+    //         month: 'short',
+    //         day: 'numeric',
+    //         hour: '2-digit',
+    //         minute: '2-digit',
+    //         hour12: false
+    //     }))
+    // };
 
     // Save chart data to JSON file
-    fs.writeFileSync('chart_data.json', JSON.stringify(chartData, null, 2));
-    console.log('Chart data saved to chart_data.json');
+    // fs.writeFileSync('chart_data.json', JSON.stringify(chartData, null, 2));
+    // console.log('Chart data saved to chart_data.json');
 
 });
