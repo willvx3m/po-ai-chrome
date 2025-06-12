@@ -145,8 +145,15 @@ New position after breaking max price difference from last position
 START: 49200.15
 
 20.      Jun 12th 08:45 - (BOX)
-1/2/{2}
+1/2/4/8/16
 STRATEGY: Male (LEB + Martingale 3.0)
 Amount: 1/2/4/8/16 (both sides), Duration: 10m, Max Position: 9
 New position after breaking max price difference from last position
 START: 49177.66
+
+21.       Jun 12th 14:00 - (Moz)
+1/2/4/8/16
+STRATEGY: MAMA (SMA + Martingale 3.0)
+Amount: 1/2/4/8/16, Direction: dynamic based on SMA, Duration: 10m, Max Position: 9
+New position after breaking max price difference from last position
+START: 

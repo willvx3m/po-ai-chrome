@@ -40,10 +40,33 @@ function run() {
       return;
     }
 
-    if (openActiveTrades()) {
+    if (!settings.priceBook) {
+      settings.priceBook = {
+        pair: '',
+        book: []
+      };
+    }
+
+    const payoutNumber = getCurrentPayout();
+    const currentPair = getCurrentPair();
+    if(currentPair != settings.priceBook.pair) {
+      settings.priceBook.pair = currentPair;
+      settings.priceBook.book = [];
+    }
+
+    if (payoutNumber >= 90 && settings.priceBook.book.length < 60) {
+      // Gather price
+      console.log('[run] Gathering price for', currentPair, ' Book length:', settings.priceBook.book.length);
+      if (openPendingTrades()) {
+        const currentPrice = getCurrentPrice();
+        if (currentPrice) {
+          settings.priceBook.book.push(currentPrice);
+          saveSettings(settings);
+        }
+      }
+    } else if (openActiveTrades()) {
       const currentBalance = getCurrentBalance();
       const currentQTMode = getCurrentQTMode();
-      const payoutNumber = getCurrentPayout();
       console.log('[run] Balance:', currentBalance, 'Mode:', currentQTMode, 'Payout:', payoutNumber);
 
       if (!hasActivePosition()) {
@@ -74,6 +97,10 @@ function run() {
             console.warn('[run] Failed to get price, skipping');
             return;
           }
+
+          settings.priceBook.book.push(price);
+          settings.priceBook.book.shift();
+          saveSettings(settings);
 
           if (positions.length < settings.maxPositionLimit) {
             const newPosition = calculateNextPosition(positions, price, payoutNumber, settings);

@@ -9,6 +9,10 @@ function getCurrentPayout() {
     return payoutNumber;
 }
 
+function getCurrentPair() {
+    return document.querySelector('span.current-symbol').innerText;
+}
+
 function getMarketSentiment() {
     return document.querySelector('div.market-watch-panel__content span.pb__number-start').innerText;
 }
@@ -190,6 +194,16 @@ function getCurrentQTMode() {
     return qtMode.innerText.trim();
 }
 
+function getCurrentPrice() {
+    const price = (document.querySelector('div.right-sidebar-modal span.open-time-number')?.innerText || '0').replace(',', '') * 1.0;
+    if (!price) {
+        console.warn('[getCurrentPrice] No price found');
+        return null;
+    }
+
+    return price;
+}
+
 // Actions
 function changeTopPairAndOpenActiveTrades() {
     const pairDropDown = document.querySelector('a.pair-number-wrap');
@@ -212,6 +226,18 @@ function changeTopPairAndOpenActiveTrades() {
 }
 
 function openActiveTrades() {
+    const tradesSidebar = document.querySelector('div.right-widget-container');
+    if (!tradesSidebar) {
+        console.warn('[openActiveTrades] Trades sidebar not found, opening trades sidebar');
+        const tradesSidebarButton = document.querySelector('div.right-sidebar nav ul li:first-child a');
+        if (tradesSidebarButton) {
+            tradesSidebarButton.click();
+        } else {
+            console.warn('[openActiveTrades] Trades sidebar button not found');
+        }
+        return false;
+    }
+
     const activeTab = document.querySelector('div.widget-slot__header ul li.active a');
     if (activeTab.innerText === 'Opened') {
         return true;
@@ -226,6 +252,18 @@ function openActiveTrades() {
 }
 
 function openClosedTrades() {
+    const tradesSidebar = document.querySelector('div.right-widget-container');
+    if (!tradesSidebar) {
+        console.warn('[openClosedTrades] Trades sidebar not found, opening trades sidebar');
+        const tradesSidebarButton = document.querySelector('div.right-sidebar nav ul li:first-child a');
+        if (tradesSidebarButton) {
+            tradesSidebarButton.click();
+        } else {
+            console.warn('[openClosedTrades] Trades sidebar button not found');
+        }
+        return false;
+    }
+
     const activeTab = document.querySelector('div.widget-slot__header ul li.active a');
     if (activeTab.innerText === 'Closed') {
         return true;
@@ -235,6 +273,36 @@ function openClosedTrades() {
 
     const closedTradesTab = document.querySelector('div.widget-slot__header ul li:nth-child(2) a');
     closedTradesTab.click();
+
+    return false;
+}
+
+function openPendingTrades() {
+    const sideBarTitle = document.querySelector('div.right-sidebar-modal div.right-sidebar-modal__top-title')?.innerText;
+    if (sideBarTitle !== 'Pending Trades') {
+        console.warn('[openPendingTrades] Pending trades sidebar not found, opening pending trades sidebar');
+        const pendingTradesButton = document.querySelector('div.right-sidebar nav ul li:nth-child(6) a');
+        if (pendingTradesButton) {
+            pendingTradesButton.click();
+        } else {
+            console.warn('[openPendingTrades] Pending trades sidebar button not found');
+        }
+        return false;
+    }
+
+    const activeTab = document.querySelector('ul.tab-nav li.active a');
+    if (activeTab.innerText === 'By the asset price') {
+        return true;
+    }
+
+    console.log('[openPendingTrades] Opening pending trades tab');
+
+    const pendingTradesTab = document.querySelector('ul.tab-nav li:nth-child(2) a');
+    if (pendingTradesTab) {
+        pendingTradesTab.click();
+    } else {
+        console.warn('[openPendingTrades] Pending trades tab not found');
+    }
 
     return false;
 }
