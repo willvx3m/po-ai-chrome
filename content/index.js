@@ -73,6 +73,7 @@ function run() {
         if (payoutNumber < 90) {
           console.log(`[run] Payout (${payoutNumber}) is less than 90, changing to top pair`);
           changeTopPairAndOpenActiveTrades();
+          return;
         } else {
           console.log('[run] No active position, creating a new position');
           if (restartRequired(settings)) {

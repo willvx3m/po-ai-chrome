@@ -215,12 +215,7 @@ function changeTopPairAndOpenActiveTrades() {
         topPair.click();
 
         setTimeout(() => {
-            openActiveTrades();
-            // Keep the modal open
-            // const assetsDropdown = document.querySelector('div.drop-down-modal div.assets-block');
-            // if (assetsDropdown) {
-            //     assetsDropdown.remove();
-            // }
+            window.location.reload();
         }, 500);
     }, 500);
 }
