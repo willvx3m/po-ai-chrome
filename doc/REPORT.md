@@ -3,6 +3,8 @@
 Algorithmic trading bot (Chrome Extension) using MAMA (MovingAverage + Martingale) strategy.
 Default Amount, Interval, Position Limit etc
 
+- include Extension screenshot
+
 ## 2. Backtesting
 
 - Balance graph

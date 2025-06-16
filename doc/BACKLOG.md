@@ -15,17 +15,16 @@
 [DONE] - Create starting position via Market Sentiment
 [DONE] - Bug fix on switching currency pair (Not working on 2nd attempt) :: Not perfect, but working
 [IGNORE] - Bug fix: Uncaught Error: Extension context invalidated.
-[DONE] - Automatic browser reload after X time (including re-start the run function)
-      => Restarting whenever duration setting fails
+[DONE] - Automatic browser reload after X time (including re-start the run function)  (eg. Restarting whenever duration setting fails)
 [DONE] - BUG: changing pair would break the session, only change it when there is no active position
 [SKIP] - Create starting position via RSI
 [SKIP] - CRUCIAL: Pick the correct direction & duration that you can gurantee 100% pairing ???
    => Short-term: ensure you don't click manual while enabled is true
 [DONE] - RESTART: when no position, after a certain time (saved in settings, previousRestart)
-- Scaling solution
-- Dynamic IP/User-Agent
+[DONE] - Scaling solution (Dynamic IP/User-Agent)
 [DONE] - Auto-capturing system (WIN)
 - Auto-capturing system (MAC)
+- Fixed/Dynamic mode on Default Amount + Auto-control (x1, x2, x3, x5) along with min capital
 
 ## Bugs & Issues
 - `run` can be called in parallel (eg. onPageLoad + manualStart)
