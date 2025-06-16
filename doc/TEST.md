@@ -144,7 +144,7 @@ Amount: 1/2/4/8/16, Duration: 10m, Max Position: 5
 New position after breaking max price difference from last position
 START: 49200.15
 
-20.      Jun 12th 08:45 - (BOX)
+20.      Jun 12th 08:45 - Jun 14th 12:50 (BOX)
 1/2/4/8/16
 STRATEGY: Male (LEB + Martingale 3.0)
 Amount: 1/2/4/8/16 (both sides), Duration: 10m, Max Position: 9
@@ -154,6 +154,15 @@ START: 49177.66
 21.       Jun 12th 14:00 - (Moz)
 1/2/4/8/16
 STRATEGY: MAMA (SMA + Martingale 3.0)
-Amount: 1/2/4/8/16, Direction: dynamic based on SMA, Duration: 10m, Max Position: 9
+Amount: 1/2/4/8/16, Direction: dynamic based on SMA, Duration: 10m, Max Position: 5
 New position after breaking max price difference from last position
-START: 
+START: 43902.63
+
+  :: Default Amount -> 5 since Jun 15th 15:25
+  :: [CRITICAL] Blocking max amount (at 8$) until Jun 16th 06:26 -> increase to 80
+  :: Increase settings.maxPositionAmount -> 80
+
+[BUG] ISSUE: PO closed for some reason (Moz: Around Jun 14th 10:00 AM)
+    It kept restarting, but couldn't properly start going.
+
+[WATCH-SPOT] Constant decline between 07:00 ~ 10:00 (00:00 ~ 3:00 CST)

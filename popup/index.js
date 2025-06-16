@@ -113,6 +113,20 @@ document.getElementById('buttonDefaultDirection').addEventListener('click', () =
   });
 });
 
+document.getElementById('testSlackMessage').addEventListener('click', () => {
+  chrome.runtime.sendMessage({ action: 'sendSlackNotification', message: 'Hello Slack!' });
+});
+
+document.getElementById('buttonSlackChannelID').addEventListener('click', () => {
+  const slackChannelID = document.getElementById('slackChannelID').value;
+  console.log('[buttonSlackChannelID] Slack Channel ID:', slackChannelID);
+  settings.slackChannelID = slackChannelID;
+  chrome.storage.local.set({ settings }, () => {
+    console.log('[buttonSlackChannelID] New settings', settings);
+    displaySettings(settings);
+  });
+});
+
 function dispatchMessageToPO(action, data) {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     if (tabs.length > 0) {
@@ -142,5 +156,6 @@ function displaySettings(settings) {
     Max Position Limit: ${settings.maxPositionLimit || "N/A"}<br>
     Max Position Amount: ${settings.maxPositionAmount || "N/A"}<br>
     Interval: ${settings.interval || "N/A"}<br>
-    Default Direction: ${settings.defaultDirection || "N/A"}`;
+    Default Direction: ${settings.defaultDirection || "N/A"}<br>
+    Slack Channel ID: ${settings.slackChannelID || "N/A"}`;
 }

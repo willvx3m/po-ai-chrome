@@ -216,7 +216,7 @@ function changeTopPairAndOpenActiveTrades() {
 
         setTimeout(() => {
             window.location.reload();
-        }, 500);
+        }, 3000);
     }, 500);
 }
 

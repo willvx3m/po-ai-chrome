@@ -46,31 +46,6 @@ This approach is used when there is a clear uptrend.
  - Select X (CALL/PUT), Y (amount) to minimize the loss in every possible case (this can be restricted to nearest N areas)
  - Create a position with the figured X/Y. Skip it unless there is no proper X/Y pair found
 
-## Dev task
-[DONE] - Save/Restore settings
-[DONE] - Open Trades->Opened tab
-[DONE] - Check Has Active Trades Going On
-[DONE] - Switch to currency pair with higher payout
-[DONE] - Get current positions (with current price)
-[DONE] - Create position
-[DONE] - Figure out X/Y pair (use brute force)
-[DONE] - Create starting position via Market Sentiment
-[DONE] - Bug fix on switching currency pair (Not working on 2nd attempt) :: Not perfect, but working
-[IGNORE] - Bug fix: Uncaught Error: Extension context invalidated.
-[DONE] - Automatic browser reload after X time (including re-start the run function)
-      => Restarting whenever duration setting fails
-[DONE] - BUG: changing pair would break the session, only change it when there is no active position
-[SKIP] - Create starting position via RSI
-[SKIP] - CRUCIAL: Pick the correct direction & duration that you can gurantee 100% pairing ???
-- BUG: `run` can be called in parallel (eg. onPageLoad + manualStart)
-   => Short-term: ensure you don't click manual while enabled is true
-[DONE] - RESTART: when no position, after a certain time (saved in settings, previousRestart)
-- Scaling solution
-- Dynamic IP/User-Agent
-[DONE] - Auto-capturing system (WIN)
-- Auto-capturing system (MAC)
-- Reporting script
-
 ## Estimated outcome
 
 ### Case 1: 2 positions, Price inside the range
@@ -98,4 +73,5 @@ With 10 shots:\
 ## Going-Live
 
 1. Check Demo/Live Environment
-2. Make sure to set AMOUNT LIMIT
+2. Make sure to set AMOUNT LIMIT (PO UI)
+3. Check Extension settings

@@ -79,6 +79,7 @@ Speculate price movement before creating a next position. If it stays in "safe" 
 ## Promo Codes
 
  SUMMER2025: 100%, May 30th - Jun 15th
+ FIBO100
 
 
 ## Issue
