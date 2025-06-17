@@ -169,3 +169,12 @@ START: 43902.63
     It kept restarting, but couldn't properly start going.
 
 [WATCH-SPOT] Constant decline between 07:00 ~ 10:00 (00:00 ~ 3:00 CST)
+
+22. Jun 17th 07:00 - (Box)
+STRATEGY: MAMA 2.0 (SMA + Martingale 3.0) + Progressive Default Amount
+
+Default Amount: 1/2/4/8 -> Progressive: 1/2/3/4/5/7/9
+Multipler: 1 (1/2/3/5)
+
+Duration: 10m, Max Position: 4
+START: 48644.66 (=BASE Amount)
