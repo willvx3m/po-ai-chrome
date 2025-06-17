@@ -159,8 +159,11 @@ New position after breaking max price difference from last position
 START: 43902.63
 
   -> Default Amount -> 5 since Jun 15th 15:25
-  -> [CRITICAL] Blocking max amount (at 8$) until Jun 16th 06:26 -> increase to 80
+  -> [ERROR] Blocking max amount (at 8$) until Jun 16th 06:26 -> increase to 80
   -> Increase settings.maxPositionAmount -> 80
+
+  -> [CRITICAL] MAMA was running with max 8$ cap, since DF->5$, it used 80$ limit which caused more damage
+   ===> FINAL Formula: Max Position: 4, Max position amount: DF * 8
 
 [BUG] ISSUE: PO closed for some reason (Moz: Around Jun 14th 10:00 AM)
     It kept restarting, but couldn't properly start going.

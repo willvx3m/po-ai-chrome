@@ -25,6 +25,8 @@
 [DONE] - Auto-capturing system (WIN)
 - Auto-capturing system (MAC)
 - Fixed/Dynamic mode on Default Amount + Auto-control (x1, x2, x3, x5) along with min capital
+[DONE] - Update slack message with packed/comprehensive status
+- Web server to monitor all machines (Aggregate Report + Chart + Alerts on withdraw, urgencies)
 
 ## Bugs & Issues
 - `run` can be called in parallel (eg. onPageLoad + manualStart)

@@ -2,7 +2,7 @@
 function getCurrentPayout() {
     const payout = document.querySelector('div.value__val-start');
     if (!payout) {
-        console.warn('[getCurrentPayout] No payout found');
+        console.info('[getCurrentPayout] No payout found');
         return 0;
     }
     const payoutNumber = parseFloat(payout.innerText);
@@ -71,7 +71,7 @@ function getActivePositions(callback) {
 
         setTimeout(() => {
             if (!positionDom.querySelector('div.price-info__prices div.price-info__prices-item:first-child')) {
-                console.warn('[getPositionDetail] Position box not opened');
+                console.info('[getPositionDetail] Position box not opened');
                 return;
             }
 
@@ -142,7 +142,7 @@ function getLatestClosedPositions(callback, limit = 4) {
 
         setTimeout(() => {
             if (!positionDom.querySelector('div.price-info__prices div.price-info__prices-item:first-child')) {
-                console.warn('[getPositionDetail] Position box not opened');
+                console.info('[getPositionDetail] Position box not opened');
                 return;
             }
 
@@ -167,7 +167,7 @@ function getLatestClosedPositions(callback, limit = 4) {
 function getEndTime() {
     const endTime = document.querySelector('div.block--expiration-inputs div.value__val');
     if (!endTime) {
-        console.warn('[getEndTime] No end time found');
+        console.info('[getEndTime] No end time found');
         return 0;
     }
 
@@ -177,7 +177,7 @@ function getEndTime() {
 function getCurrentBalance() {
     const balance = document.querySelector('div.balance-info-block__balance span');
     if (!balance || !balance.innerText) {
-        console.warn('[getCurrentBalance] No balance found');
+        console.info('[getCurrentBalance] No balance found');
         return 0;
     }
 
@@ -187,7 +187,7 @@ function getCurrentBalance() {
 function getCurrentQTMode() {
     const qtMode = document.querySelector('div.balance-info-block__label');
     if (!qtMode || !qtMode.innerText) {
-        console.warn('[getCurrentQTMode] No QT mode found');
+        console.info('[getCurrentQTMode] No QT mode found');
         return 0;
     }
 
@@ -197,7 +197,7 @@ function getCurrentQTMode() {
 function getCurrentPrice() {
     const price = (document.querySelector('div.right-sidebar-modal span.open-time-number')?.innerText || '0').replace(',', '') * 1.0;
     if (!price) {
-        console.warn('[getCurrentPrice] No price found');
+        console.info('[getCurrentPrice] No price found');
         return null;
     }
 
@@ -223,12 +223,12 @@ function changeTopPairAndOpenActiveTrades() {
 function openActiveTrades() {
     const tradesSidebar = document.querySelector('div.right-widget-container');
     if (!tradesSidebar) {
-        console.warn('[openActiveTrades] Trades sidebar not found, opening trades sidebar');
+        console.info('[openActiveTrades] Trades sidebar not found, opening trades sidebar');
         const tradesSidebarButton = document.querySelector('div.right-sidebar nav ul li:first-child a');
         if (tradesSidebarButton) {
             tradesSidebarButton.click();
         } else {
-            console.warn('[openActiveTrades] Trades sidebar button not found');
+            console.info('[openActiveTrades] Trades sidebar button not found');
         }
         return false;
     }
@@ -249,12 +249,12 @@ function openActiveTrades() {
 function openClosedTrades() {
     const tradesSidebar = document.querySelector('div.right-widget-container');
     if (!tradesSidebar) {
-        console.warn('[openClosedTrades] Trades sidebar not found, opening trades sidebar');
+        console.info('[openClosedTrades] Trades sidebar not found, opening trades sidebar');
         const tradesSidebarButton = document.querySelector('div.right-sidebar nav ul li:first-child a');
         if (tradesSidebarButton) {
             tradesSidebarButton.click();
         } else {
-            console.warn('[openClosedTrades] Trades sidebar button not found');
+            console.info('[openClosedTrades] Trades sidebar button not found');
         }
         return false;
     }
@@ -275,12 +275,12 @@ function openClosedTrades() {
 function openPendingTrades() {
     const sideBarTitle = document.querySelector('div.right-sidebar-modal div.right-sidebar-modal__top-title')?.innerText;
     if (sideBarTitle !== 'Pending Trades') {
-        console.warn('[openPendingTrades] Pending trades sidebar not found, opening pending trades sidebar');
+        console.info('[openPendingTrades] Pending trades sidebar not found, opening pending trades sidebar');
         const pendingTradesButton = document.querySelector('div.right-sidebar nav ul li:nth-child(6) a');
         if (pendingTradesButton) {
             pendingTradesButton.click();
         } else {
-            console.warn('[openPendingTrades] Pending trades sidebar button not found');
+            console.info('[openPendingTrades] Pending trades sidebar button not found');
         }
         return false;
     }
@@ -296,7 +296,7 @@ function openPendingTrades() {
     if (pendingTradesTab) {
         pendingTradesTab.click();
     } else {
-        console.warn('[openPendingTrades] Pending trades tab not found');
+        console.info('[openPendingTrades] Pending trades tab not found');
     }
 
     return false;
@@ -305,14 +305,14 @@ function openPendingTrades() {
 function setEndTime(time, callback) {
     var timeLabel = document.querySelector('div.block--expiration-inputs div.block__title');
     if (!timeLabel) {
-        console.warn('[setEndTime] No time label found');
+        console.info('[setEndTime] No time label found');
         return;
     }
 
     if (timeLabel.innerText === 'Time') { // Switch from duration-based to timepoint-based
         const timeToggleButton = document.querySelector('div.block--expiration-inputs div.control__buttons');
         if (!timeToggleButton) {
-            console.warn('[setEndTime] Failed to set time: toggle button not found');
+            console.info('[setEndTime] Failed to set time: toggle button not found');
             return;
         }
 
@@ -438,3 +438,38 @@ function createPosition(amount, direction, callback) {
         }, 0);
     });
 }
+
+// Smart functions
+function getDefaultAmount(balance, multiplier, baseAmount, riskDepth) {
+    multiplier = multiplier || 1;
+    const BASE_AMOUNT = baseAmount || 400 * multiplier;
+    const BASE_RISK_DEPTH = riskDepth || 60 * multiplier;
+
+    const stepAmounts = [1, 2, 3, 4, 5, 7, 9];
+    let returnAmount = 1;
+
+    for (var i = 0; i < stepAmounts.length; i++) {
+        const minCapital = i == 0 ? BASE_AMOUNT : BASE_AMOUNT + BASE_RISK_DEPTH * (stepAmounts[i - 1]);
+        const targetAmount = stepAmounts[i] * multiplier;
+        // console.log(`[getDefaultAmount] Balance: ${balance}, Min Capital: ${minCapital}, i: ${i}, stepAmounts[i]: ${stepAmounts[i]}, targetAmount: ${targetAmount}`);
+        if (balance >= minCapital) {
+            returnAmount = targetAmount;
+        }
+    }
+
+    return returnAmount;
+}
+
+// var target;
+
+// target = getDefaultAmount(1000, 1);
+// console.log(`=> Target $1: ${target}`);
+
+// target = getDefaultAmount(1500, 2);
+// console.log(`=> Target $2: ${target}`);
+
+// target = getDefaultAmount(2000, 3);
+// console.log(`=> Target $3: ${target}`);
+
+// target = getDefaultAmount(3000, 5);
+// console.log(`=> Target $5: ${target}`);

@@ -1,21 +1,23 @@
 // Upgraded Martingale strategy based on SMA
-// Position amount: 1/2/4/8/16
+// Position amount: 1/2/4/8
 // Dynamic direction based on moving average
 const DEFAULT_SETTINGS = {
     userName: 'Unknown',
     name: 'MAMA',
     enabled: false,
     defaultAmount: 1,
+    multiplier: 1,
     defaultDuration: 10,
-    maxPositionLimit: 5,
-    maxPositionAmount: 16,
+    maxPositionLimit: 4,
+    maxPositionAmount: 8,
     interval: 10000,
     defaultDirection: 'BUY',
     previousRestart: (new Date()) * 1,
+    smaSampleCount: 60, // Default: 60
 }
 
-function getSMA(prices) {
-    if(!prices || prices.length < 60) {
+function getSMA(prices, smaSampleCount) {
+    if (!prices || prices.length < smaSampleCount) {
         return 0;
     }
 
@@ -24,12 +26,12 @@ function getSMA(prices) {
 }
 
 function createStartingPosition(settings) {
-    if(!settings.priceBook.book || settings.priceBook.book.length < 60) {
+    if (!settings.priceBook.book || settings.priceBook.book.length < settings.smaSampleCount) {
         console.log('[cSP] Price book not ready, skipping');
         return;
     }
 
-    const sma = getSMA(settings.priceBook.book);
+    const sma = getSMA(settings.priceBook.book, settings.smaSampleCount);
     const lastPrice = settings.priceBook.book[settings.priceBook.book.length - 1];
     settings.defaultDirection = sma < lastPrice ? 'BUY' : 'SELL';
     console.log('[cSP] SMA:', sma, 'Last price:', lastPrice, 'Default direction:', settings.defaultDirection);
@@ -79,17 +81,17 @@ function calculateNextPosition(ps, price, newProfit, settings) {
         return null;
     }
 
-    if(secondsLeft < 45){
+    if (secondsLeft < 45) {
         return null;
     }
     console.log('[cNP] CHECK BREAK:', priceDifference, settings.maxPriceDifference);
     const needNewPosition = priceDifference > settings.maxPriceDifference && (lastPosition.direction === 'BUY' ? lastPosition.openPrice > price : lastPosition.openPrice < price);
-    if(!needNewPosition){
+    if (!needNewPosition) {
         return null;
     }
 
     const newPositionAmount = lastPosition.amount * 2;
-    if (newPositionAmount > settings.maxPositionAmount) {
+    if (newPositionAmount > settings.maxPositionAmount * settings.defaultAmount) {
         return null;
     }
 

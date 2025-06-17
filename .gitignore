@@ -1,5 +1,7 @@
 node_modules
 *.log
 *.csv
+*.zip
 *.xlsx
 videos
+.DS_Store

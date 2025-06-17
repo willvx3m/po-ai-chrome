@@ -1,7 +1,7 @@
 var settings = {};
 
-document.addEventListener('DOMContentLoaded', function() {
-  chrome.storage.local.get(['settings'], function(result) {
+document.addEventListener('DOMContentLoaded', function () {
+  chrome.storage.local.get(['settings'], function (result) {
     settings = result.settings || {};
     displaySettings(settings);
   });
@@ -127,6 +127,36 @@ document.getElementById('buttonSlackChannelID').addEventListener('click', () => 
   });
 });
 
+document.getElementById('buttonMultiplier').addEventListener('click', () => {
+  const multiplier = document.getElementById('multiplier').value;
+  console.log('[buttonMultiplier] Multiplier:', multiplier);
+  settings.multiplier = multiplier * 1;
+  chrome.storage.local.set({ settings }, () => {
+    console.log('[buttonMultiplier] New settings', settings);
+    displaySettings(settings);
+  });
+});
+
+document.getElementById('buttonBaseAmount').addEventListener('click', () => {
+  const baseAmount = document.getElementById('baseAmount').value;
+  console.log('[buttonBaseAmount] Base Amount:', baseAmount);
+  settings.baseAmount = baseAmount * 1;
+  chrome.storage.local.set({ settings }, () => {
+    console.log('[buttonBaseAmount] New settings', settings);
+    displaySettings(settings);
+  });
+});
+
+document.getElementById('buttonRiskDepth').addEventListener('click', () => {
+  const riskDepth = document.getElementById('riskDepth').value;
+  console.log('[buttonRiskDepth] Risk Depth:', riskDepth);
+  settings.riskDepth = riskDepth * 1;
+  chrome.storage.local.set({ settings }, () => {
+    console.log('[buttonRiskDepth] New settings', settings);
+    displaySettings(settings);
+  });
+});
+
 function dispatchMessageToPO(action, data) {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     if (tabs.length > 0) {
@@ -152,10 +182,14 @@ function displaySettings(settings) {
     User Name: ${settings.userName || "N/A"}<br>
     Strategy Name: ${settings.name || "N/A"}<br>
     Default Amount: ${settings.defaultAmount || "N/A"}<br>
+    Multiplier: ${settings.multiplier || "N/A"}<br>
+    Base Amount: ${settings.baseAmount || "N/A"}<br>
+    Risk Depth: ${settings.riskDepth || "N/A"}<br>
     Default Duration: ${settings.defaultDuration || "N/A"}<br>
     Max Position Limit: ${settings.maxPositionLimit || "N/A"}<br>
     Max Position Amount: ${settings.maxPositionAmount || "N/A"}<br>
     Interval: ${settings.interval || "N/A"}<br>
     Default Direction: ${settings.defaultDirection || "N/A"}<br>
-    Slack Channel ID: ${settings.slackChannelID || "N/A"}`;
+    Slack Channel ID: ${settings.slackChannelID || "N/A"}<br>
+  `;
 }

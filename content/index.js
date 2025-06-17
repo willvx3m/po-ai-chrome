@@ -49,12 +49,12 @@ function run() {
 
     const payoutNumber = getCurrentPayout();
     const currentPair = getCurrentPair();
-    if(currentPair != settings.priceBook.pair) {
+    if (currentPair != settings.priceBook.pair) {
       settings.priceBook.pair = currentPair;
       settings.priceBook.book = [];
     }
 
-    if (payoutNumber >= 90 && settings.priceBook.book.length < 60) {
+    if (payoutNumber >= 90 && settings.priceBook.book.length < settings.smaSampleCount) {
       // Gather price
       console.log('[run] Gathering price for', currentPair, ' Book length:', settings.priceBook.book.length);
       if (openPendingTrades()) {
@@ -83,10 +83,13 @@ function run() {
             return;
           }
 
-          checkAndSaveSettings(settings, currentBalance);
+          settings.savedBalance = currentBalance;
+          settings.savedQTMode = currentQTMode;
+          settings.defaultAmount = getDefaultAmount(currentBalance, settings.multiplier, settings.baseAmount, settings.riskDepth);
+          saveSettings(settings);
           createStartingPosition(settings);
 
-          const message = `[${settings.userName} (${settings.name})] ${currentBalance}, ${currentQTMode}`;
+          const message = `[${settings.userName} (${currentQTMode === 'QT Demo' ? 'D' : 'R'})] ${currentBalance}, M: ${settings.multiplier}, A: ${settings.defaultAmount}`;
           setTimeout(() => sendSlackMessage(message), 0);
         }
       } else {
@@ -95,7 +98,7 @@ function run() {
           console.log(`[run] Price: ${price}, Amount: ${amount} -> ${outcome}, ${timeLeft} left`);
 
           if (price === 0) {
-            console.warn('[run] Failed to get price, skipping');
+            console.info('[run] Failed to get price, skipping');
             return;
           }
 

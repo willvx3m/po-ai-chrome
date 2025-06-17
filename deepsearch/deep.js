@@ -1,7 +1,7 @@
 const PROFIT = 92;
 const STARTING_PRICE = 333;
 const PRICE_UNIT = 1;
-const MAX_PRICE_STEP = 3; // Set as 5 or 10
+const MAX_PRICE_STEP = 5; // Set as 5 or 10
 const N_PRICE_MOVEMENTS = 3; // Number of price movement
 const MAX_POSITION_AMOUNT = 3; // Set as 10 or 20
 const POSITION_DIRECTIONS = ['BUY', 'SELL'];
@@ -59,7 +59,7 @@ function run(currentPrice, positions, nPriceMovements) {
         const profit = evaluatePosition(positions, currentPrice);
         const message = `Price: ${formatPriceStep(currentPrice)} :: ${positionString} = ${profit.toFixed(2)}`;
         if (profit > 0) {
-            console.warn(message);
+            console.info(message);
             // const startingPrice = positions[0].price;
             // const endingPrice = currentPrice;
 
