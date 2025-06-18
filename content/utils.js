@@ -446,7 +446,7 @@ function getDefaultAmount(balance, multiplier, baseAmount, riskDepth) {
     const BASE_RISK_DEPTH = riskDepth || 60 * multiplier;
 
     const stepAmounts = [1, 2, 3, 4, 5, 7, 9];
-    let returnAmount = 1;
+    let returnAmount = 1 * multiplier;
 
     for (var i = 0; i < stepAmounts.length; i++) {
         const minCapital = i == 0 ? BASE_AMOUNT : BASE_AMOUNT + BASE_RISK_DEPTH * (stepAmounts[i - 1]);
