@@ -178,3 +178,10 @@ Multipler: 1 (1/2/3/5)
 
 Duration: 10m, Max Position: 4
 START: 48644.66 (=BASE Amount)
+
+23. Jun 19th 11:15 - (Moz)
+STRATEGY: MAMA 2.2 (SMA + Martingale 3.0) + Progressive Default Amount
+Non-OTC pair with minPayout: 80%
+
+Duration: 10m, Max Position: 4
+START: 43593.68 (=BASE Amount)

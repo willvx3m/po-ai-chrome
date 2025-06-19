@@ -14,6 +14,8 @@ const DEFAULT_SETTINGS = {
     defaultDirection: 'BUY',
     previousRestart: (new Date()) * 1,
     smaSampleCount: 60, // Default: 60
+    minPayout: 80, // considered non-OTC pairs
+    includeOTC: false, // no OTC pairs
 }
 
 function getSMA(prices, smaSampleCount) {

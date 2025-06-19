@@ -157,6 +157,26 @@ document.getElementById('buttonRiskDepth').addEventListener('click', () => {
   });
 });
 
+document.getElementById('buttonMinPayout').addEventListener('click', () => {
+  const minPayout = document.getElementById('minPayout').value;
+  console.log('[buttonMinPayout] Min Payout:', minPayout);
+  settings.minPayout = minPayout * 1;
+  chrome.storage.local.set({ settings }, () => {
+    console.log('[buttonMinPayout] New settings', settings);
+    displaySettings(settings);
+  });
+});
+
+document.getElementById('buttonIncludeOTC').addEventListener('click', () => {
+  const includeOTC = document.getElementById('includeOTC').checked;
+  console.log('[buttonIncludeOTC] Include OTC:', includeOTC);
+  settings.includeOTC = includeOTC;
+  chrome.storage.local.set({ settings }, () => {
+    console.log('[buttonIncludeOTC] New settings', settings);
+    displaySettings(settings);
+  });
+});
+
 function dispatchMessageToPO(action, data) {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     if (tabs.length > 0) {
@@ -191,5 +211,7 @@ function displaySettings(settings) {
     Interval: ${settings.interval || "N/A"}<br>
     Default Direction: ${settings.defaultDirection || "N/A"}<br>
     Slack Channel ID: ${settings.slackChannelID || "N/A"}<br>
+    Min Payout: ${settings.minPayout || "90"}<br>
+    Include OTC: ${settings.includeOTC === false ? "No" : "Yes"}<br>
   `;
 }

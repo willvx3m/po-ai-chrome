@@ -205,18 +205,34 @@ function getCurrentPrice() {
 }
 
 // Actions
-function changeTopPairAndOpenActiveTrades() {
+function changeTopPairAndOpenActiveTrades(minPayout, includeOTC) {
     const pairDropDown = document.querySelector('a.pair-number-wrap');
     pairDropDown.click();
 
     setTimeout(() => {
-        const topPair = document.querySelector('ul.alist-currency li.alist__item:first-child a');
-        // console.log('[changePair] topPair', topPair);
-        topPair.click();
+        const pairs = document.querySelectorAll('ul.alist-currency li.alist__item a');
+        for (const pair of pairs) {
+            const pairName = pair.querySelector('span.alist__label')?.innerText;
+            if (pairName.includes('OTC') && includeOTC === false) {
+                continue;
+            }
+            const payout = parseInt(pair.querySelector('span.alist__payout span')?.innerText || '0');
+            if (payout >= minPayout) {
+                console.log('[changeTopPairAndOpenActiveTrades]', pairName, payout);
+                pair.click();
+                setTimeout(() => {
+                    window.location.reload();
+                }, 3000);
+                return;
+            }
+        }
 
-        setTimeout(() => {
-            window.location.reload();
-        }, 3000);
+        const errorMessage = 'No pair with minPayout: ' + minPayout + ', includeOTC: ' + includeOTC;
+        console.log('[changeTopPairAndOpenActiveTrades]', errorMessage);
+        chrome.runtime.sendMessage({
+            action: 'sendSlackNotification',
+            message: errorMessage,
+        });
     }, 500);
 }
 

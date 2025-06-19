@@ -47,6 +47,7 @@ function run() {
       };
     }
 
+    const minPayout = settings.minPayout || 90;
     const payoutNumber = getCurrentPayout();
     const currentPair = getCurrentPair();
     if (currentPair != settings.priceBook.pair) {
@@ -54,7 +55,8 @@ function run() {
       settings.priceBook.book = [];
     }
 
-    if (payoutNumber >= 90 && settings.priceBook.book.length < settings.smaSampleCount) {
+    const shouldChangePair = payoutNumber < minPayout || (settings.includeOTC === false && currentPair.includes('OTC'));
+    if (!shouldChangePair && settings.priceBook.book.length < settings.smaSampleCount) {
       // Gather price
       console.log('[run] Gathering price for', currentPair, ' Book length:', settings.priceBook.book.length);
       if (openPendingTrades()) {
@@ -70,9 +72,9 @@ function run() {
       console.log('[run] Balance:', currentBalance, 'Mode:', currentQTMode, 'Payout:', payoutNumber);
 
       if (!hasActivePosition()) {
-        if (payoutNumber < 90) {
-          console.log(`[run] Payout (${payoutNumber}) is less than 90, changing to top pair`);
-          changeTopPairAndOpenActiveTrades();
+        if (shouldChangePair) {
+          console.log(`[run] Pair change required, CurrentPayout: (${payoutNumber}), MinPayout: (${minPayout}), includeOTC: (${settings.includeOTC})`);
+          changeTopPairAndOpenActiveTrades(minPayout, settings.includeOTC);
           return;
         } else {
           console.log('[run] No active position, creating a new position');

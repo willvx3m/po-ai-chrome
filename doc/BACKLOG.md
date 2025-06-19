@@ -4,6 +4,11 @@
  FIBO100: Valid??
  WELCOMEXX: First Deposit
 
+Jun 19 ~ Jul 6
+ PARIS - 60%
+ DUBAI - 80%
+ MALDIVES - 100%
+
 ## Development
 [DONE] - Save/Restore settings
 [DONE] - Open Trades->Opened tab
