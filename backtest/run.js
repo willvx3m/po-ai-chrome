@@ -3,13 +3,17 @@ const { parse } = require('csv-parse');
 // const { createStartingPosition, calculateNextPosition, DEFAULT_SETTINGS } = require('./strategy');
 // const { createStartingPosition, calculateNextPosition, DEFAULT_SETTINGS } = require('./strategy-bolk-2');
 const { createStartingPosition, calculateNextPosition, DEFAULT_SETTINGS } = require('./strategy-martingale-3');
+// const { createStartingPosition, calculateNextPosition, DEFAULT_SETTINGS } = require('./strategy-mama');
 
 const period = '1m'; // 1w, 2w, 1m
 // const symbol = 'EUR/USDT';
 // const symbol = 'BTC/USDT';
 // const symbol = 'aud/cad';
-const symbol = 'aud/cny';
+// const symbol = 'aud/cny';
+// const symbol = 'gecko-eurc/usdc';
+const symbol = 'gecko-chf/usdc';
 const csvFile = `${symbol.replace('/', '_')}_ohlcv_${period}.csv`;
+const fixedProfit = 80;
 
 // Function to read CSV and extract close prices
 function getPrices(csvFile, symbol, callback) {
@@ -25,16 +29,27 @@ function getPrices(csvFile, symbol, callback) {
     fs.createReadStream(csvFile)
         .pipe(parse({ columns: true, trim: true }))
         .on('data', (row) => {
-            // console.log(row['Open time'], row['Open price']);
-            // console.log(row);
-            // if (row.symbol === symbol) {
+            if (symbol === 'EUR/USDT' || symbol === 'BTC/USDT') {
+                if (row.symbol === symbol) {
+                    prices.push({
+                        price: parseFloat(row.close),
+                        timestamp: row.timestamp
+                    });
+                }
+            } else if (symbol.startsWith('gecko-')) {
                 prices.push({
-                    // price: parseFloat(row.close),
-                    // timestamp: row.timestamp
+                    price: parseFloat(row.Close),
+                    timestamp: row.Timestamp
+                });
+            } else {
+                prices.push({
                     price: parseFloat(row['Open price']),
                     timestamp: row['Open time']
                 });
-            // }
+
+            }
+            // console.log(row['Open time'], row['Open price']);
+            // console.log(row);
         })
         .on('end', () => {
             callback(prices);
@@ -80,12 +95,13 @@ function run(prices, symbol) {
      */
     const activePositions = [];
     const settings = DEFAULT_SETTINGS;
+    settings.priceBook = [];
     const tradeLog = [];
     let totalProfit = 0;
     let totalTrades = 0;
     let winningTrades = 0;
 
-    for (let i = 0; i < prices.length - 1; i++) {
+    for (let i = 0; i < prices.length; i++) {
         const currentPrice = prices[i].price;
         const currentTime = new Date(prices[i].timestamp).getTime();
 
@@ -108,9 +124,13 @@ function run(prices, symbol) {
         // Define new position
         var newPositions;
         if (activePositions.length === 0) {
-            newPositions = createStartingPosition(settings, currentPrice, 90, currentTime);
+            newPositions = createStartingPosition(settings, currentPrice, fixedProfit, currentTime);
         } else {
-            newPositions = calculateNextPosition(activePositions, currentPrice, 90, settings, currentTime);
+            newPositions = calculateNextPosition(activePositions, currentPrice, fixedProfit, settings, currentTime);
+        }
+        settings.priceBook.push(currentPrice);
+        while (settings.priceBook.length > settings.smaSampleCount) {
+            settings.priceBook.shift();
         }
         if (newPositions && activePositions.length < settings.maxPositionLimit) {
             newPositions.forEach(position => {
@@ -133,7 +153,9 @@ getPrices(csvFile, symbol, (prices) => {
         console.error('No prices found for the specified symbol.');
         return;
     }
-    prices = prices.reverse(); // only for aud/cny, aud/cad
+    if (symbol === 'aud/cad' || symbol === 'aud/cny') {
+        prices = prices.reverse(); // only for aud/cny, aud/cad
+    }
 
     // Run backtest
     const results = run(prices, symbol);
@@ -146,7 +168,8 @@ getPrices(csvFile, symbol, (prices) => {
     let totalMinusCount = 0;
 
     results.tradeLog/*.slice(0, 5)*/.forEach((trade, index) => {
-        totalAmount += trade.positions.reduce((acc, pos) => acc + pos.amount, 0);
+        const amount = trade.positions.reduce((acc, pos) => acc + pos.amount, 0);
+        totalAmount += amount;
         if (trade.profit > 0) {
             totalPlus += trade.profit;
             totalPlusCount++;
@@ -157,8 +180,9 @@ getPrices(csvFile, symbol, (prices) => {
 
         console.log(
             `# ${index + 1}:`,
+            `Amount:`, amount,
             `Profit:`, trade.profit.toFixed(2) * 1,
-            `Max Price Difference:`, trade.maxPriceDifference,
+            // `Max Price Difference:`, trade.maxPriceDifference,
             `End Price:`, trade.endPrice,
             `Ends At:`, trade.endsAt,
             // `Positions:`, trade.positions

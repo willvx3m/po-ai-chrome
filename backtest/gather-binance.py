@@ -11,7 +11,8 @@ exchange = ccxt.binance({
 # Define assets and timeframe
 # symbols = ['BTC/USDT', 'EUR/USDT']  # Use EUR/USDT or EUR/USDT-PERP for futures
 # symbols = ['EUR/USDT']  # Use EUR/USDT or EUR/USDT-PERP for futures
-symbols = ['BTC/USDT']  # Use EUR/USDT or EUR/USDT-PERP for futures
+# symbols = ['BTC/USDT']  # Use EUR/USDT or EUR/USDT-PERP for futures
+symbols = ['CNY/USDT']
 timeframe = '1m'  # 5-minute candles (adjust as needed: '1m', '5m', '1h', etc.)
 since = exchange.parse8601('2025-06-01 00:00:00')  # Start date
 limit = 1000  # Max candles per request
