@@ -7,9 +7,15 @@ import time
 # network = 'base'
 # pool_address = '0x7b2c99188d8ec7b82d6b3b3b1c1002095f1b8498'  # EURC/USDC pool
 # pair = 'eurc_usdc'
-network = 'solana'
-pool_address = 'CsPcrAP4gL2JGJxRBLvw4fTBkGdpRDqiSSCfJ8WcTiUk'  # CHF/USDC pool
-pair = 'chf_usdc'
+# network = 'solana'
+# pool_address = 'CsPcrAP4gL2JGJxRBLvw4fTBkGdpRDqiSSCfJ8WcTiUk'  # CHF/USDC pool
+# pair = 'chf_usdc'
+# network = 'eth'
+# pool_address = '0x227d7fbba8b323d3a35ebca9c9f6c2f759fedd82'  # AUD/USDT pool
+# pair = 'aud_usdt'
+network = 'eth'
+pool_address = '0x9db9e0e53058c89e5b94e29621a205198648425b'  # BTC/USDT pool
+pair = 'btc_usdt'
 timeframe = 'minute'
 aggregate = 1  # 1-minute candles
 

@@ -2,8 +2,8 @@ const fs = require('fs');
 const { parse } = require('csv-parse');
 // const { createStartingPosition, calculateNextPosition, DEFAULT_SETTINGS } = require('./strategy');
 // const { createStartingPosition, calculateNextPosition, DEFAULT_SETTINGS } = require('./strategy-bolk-2');
-const { createStartingPosition, calculateNextPosition, DEFAULT_SETTINGS } = require('./strategy-martingale-3');
-// const { createStartingPosition, calculateNextPosition, DEFAULT_SETTINGS } = require('./strategy-mama');
+// const { createStartingPosition, calculateNextPosition, DEFAULT_SETTINGS } = require('./strategy-martingale-3');
+const { createStartingPosition, calculateNextPosition, DEFAULT_SETTINGS } = require('./strategy-mama');
 
 const period = '1m'; // 1w, 2w, 1m
 // const symbol = 'EUR/USDT';
@@ -11,7 +11,8 @@ const period = '1m'; // 1w, 2w, 1m
 // const symbol = 'aud/cad';
 // const symbol = 'aud/cny';
 // const symbol = 'gecko-eurc/usdc';
-const symbol = 'gecko-chf/usdc';
+// const symbol = 'gecko-chf/usdc';
+const symbol = 'gecko-btc/usdt';
 const csvFile = `${symbol.replace('/', '_')}_ohlcv_${period}.csv`;
 const fixedProfit = 80;
 

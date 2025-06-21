@@ -233,6 +233,9 @@ function changeTopPairAndOpenActiveTrades(minPayout, includeOTC) {
             action: 'sendSlackNotification',
             message: errorMessage,
         });
+        setTimeout(() => {
+            window.location.reload();
+        }, 600 * 1000);
     }, 500);
 }
 
