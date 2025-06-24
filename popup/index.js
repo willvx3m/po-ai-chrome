@@ -177,6 +177,16 @@ document.getElementById('buttonIncludeOTC').addEventListener('click', () => {
   });
 });
 
+document.getElementById('buttonSmaSampleCount').addEventListener('click', () => {
+  const smaSampleCount = document.getElementById('smaSampleCount').value;
+  console.log('[buttonSmaSampleCount] SMA Sample Count:', smaSampleCount);
+  settings.smaSampleCount = smaSampleCount * 1;
+  chrome.storage.local.set({ settings }, () => {
+    console.log('[buttonSmaSampleCount] New settings', settings);
+    displaySettings(settings);
+  });
+});
+
 function dispatchMessageToPO(action, data) {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     if (tabs.length > 0) {
@@ -213,5 +223,6 @@ function displaySettings(settings) {
     Slack Channel ID: ${settings.slackChannelID || "N/A"}<br>
     Min Payout: ${settings.minPayout || "90"}<br>
     Include OTC: ${settings.includeOTC === false ? "No" : "Yes"}<br>
+    SMA Sample Count: ${settings.smaSampleCount || "N/A"}<br>
   `;
 }

@@ -185,3 +185,15 @@ Non-OTC pair with minPayout: 80%
 
 Duration: 10m, Max Position: 4
 START: 43593.68 (=BASE Amount)
+
+
+24. Jun 24th 09:55 - (VPS Blade)
+STRATEGY: MAMA 2.2 - no progressive amount, with maxSpike
+Include OTC Pair, minPayout: 80%
+
+Duration: 10m, Max Position: 5
+SMA Sample count: 6 (Recommended by backtesting, but still using maxSpike and <45s rule)
+
+[IMPORTANT] FIRST VPS RUNNING
+
+START: 49971.20
