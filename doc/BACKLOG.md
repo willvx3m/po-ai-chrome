@@ -1,13 +1,17 @@
 ## Promo Codes
 
- SUMMER2025: 100%, May 30th - Jun 15th
- FIBO100: Valid??
- WELCOMEXX: First Deposit
+SUMMER2025: 100%, May 30th - Jun 15th
 
 Jun 19 ~ Jul 6
  PARIS - 60%
  DUBAI - 80%
  MALDIVES - 100%
+
+WELCOMEXX: First Deposit
+MARKET100
+FIBO100
+
+Check out PO youtube channel.
 
 ## Development
 [DONE] - Save/Restore settings
