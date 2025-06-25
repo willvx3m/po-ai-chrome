@@ -127,6 +127,16 @@ document.getElementById('buttonSlackChannelID').addEventListener('click', () => 
   });
 });
 
+document.getElementById('buttonSlackBotToken').addEventListener('click', () => {
+  const slackBotToken = document.getElementById('slackBotToken').value;
+  console.log('[buttonSlackBotToken] Slack Bot Token:', slackBotToken);
+  settings.slackBotToken = slackBotToken;
+  chrome.storage.local.set({ settings }, () => {
+    console.log('[buttonSlackBotToken] New settings', settings);
+    displaySettings(settings);
+  });
+});
+
 document.getElementById('buttonMultiplier').addEventListener('click', () => {
   const multiplier = document.getElementById('multiplier').value;
   console.log('[buttonMultiplier] Multiplier:', multiplier);
@@ -187,6 +197,17 @@ document.getElementById('buttonSmaSampleCount').addEventListener('click', () => 
   });
 });
 
+
+document.getElementById('buttonUrlDataServer').addEventListener('click', () => {
+  const urlDataServer = document.getElementById('urlDataServer').value;
+  console.log('[buttonUrlDataServer] URL Data Server:', urlDataServer);
+  settings.urlDataServer = urlDataServer;
+  chrome.storage.local.set({ settings }, () => {
+    console.log('[buttonUrlDataServer] New settings', settings);
+    displaySettings(settings);
+  });
+});
+
 function dispatchMessageToPO(action, data) {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     if (tabs.length > 0) {
@@ -209,20 +230,26 @@ function displaySettings(settings) {
   const enabled = settings?.enabled;
   const statusElement = document.getElementById("settingDisplay");
   statusElement.innerHTML = `Enabled: ${enabled ? "Yes" : "No"}<br>
+    ---------------------------<br>
     User Name: ${settings.userName || "N/A"}<br>
     Strategy Name: ${settings.name || "N/A"}<br>
+    Interval: ${settings.interval || "N/A"}<br>
+    Default Direction: ${settings.defaultDirection || "N/A"}<br>
     Default Amount: ${settings.defaultAmount || "N/A"}<br>
-    Multiplier: ${settings.multiplier || "N/A"}<br>
-    Base Amount: ${settings.baseAmount || "N/A"}<br>
-    Risk Depth: ${settings.riskDepth || "N/A"}<br>
     Default Duration: ${settings.defaultDuration || "N/A"}<br>
     Max Position Limit: ${settings.maxPositionLimit || "N/A"}<br>
     Max Position Amount: ${settings.maxPositionAmount || "N/A"}<br>
-    Interval: ${settings.interval || "N/A"}<br>
-    Default Direction: ${settings.defaultDirection || "N/A"}<br>
-    Slack Channel ID: ${settings.slackChannelID || "N/A"}<br>
+    ---------------------------<br>
+    Multiplier: ${settings.multiplier || "N/A"}<br>
+    Base Amount: ${settings.baseAmount || "N/A"}<br>
+    Risk Depth: ${settings.riskDepth || "N/A"}<br>
+    ---------------------------<br>
     Min Payout: ${settings.minPayout || "90"}<br>
     Include OTC: ${settings.includeOTC === false ? "No" : "Yes"}<br>
     SMA Sample Count: ${settings.smaSampleCount || "N/A"}<br>
+    ---------------------------<br>
+    Slack Channel ID: ${settings.slackChannelID || "N/A"}<br>
+    Slack Bot Token: ${settings.slackBotToken || "N/A"}<br>
+    Data Server URL: ${settings.urlDataServer || "N/A"}<br>
   `;
 }

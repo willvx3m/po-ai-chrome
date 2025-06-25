@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "PO AI Trading",
-  "version": "2.0",
+  "version": "3.0",
   "description": "Do your thing",
   "permissions": ["activeTab", "scripting", "storage"],
   "host_permissions": [
@@ -21,7 +21,7 @@
   "content_scripts": [
     {
       "matches": ["https://*.pocketoption.com/*"],
-      "js": ["content/settings.js", "content/utils.js", "content/x-mama.js", "content/index.js"],
+      "js": ["content/settings.js", "content/utils.js", "content/x-mama-3.js", "content/index.js"],
       "note": "switch between maco.js and leb.js to change the strategy"
     }
   ]

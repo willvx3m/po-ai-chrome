@@ -460,6 +460,10 @@ function createPosition(amount, direction, callback) {
 
 // Smart functions
 function getDefaultAmount(balance, multiplier, baseAmount, riskDepth) {
+    if (!baseAmount || !riskDepth) {
+        return 1;
+    }
+
     multiplier = multiplier || 1;
     const BASE_AMOUNT = baseAmount || 400 * multiplier;
     const BASE_RISK_DEPTH = riskDepth || 60 * multiplier;
@@ -470,13 +474,28 @@ function getDefaultAmount(balance, multiplier, baseAmount, riskDepth) {
     for (var i = 0; i < stepAmounts.length; i++) {
         const minCapital = i == 0 ? BASE_AMOUNT : BASE_AMOUNT + BASE_RISK_DEPTH * (stepAmounts[i - 1]);
         const targetAmount = stepAmounts[i] * multiplier;
-        // console.log(`[getDefaultAmount] Balance: ${balance}, Min Capital: ${minCapital}, i: ${i}, stepAmounts[i]: ${stepAmounts[i]}, targetAmount: ${targetAmount}`);
         if (balance >= minCapital) {
             returnAmount = targetAmount;
         }
     }
 
     return returnAmount;
+}
+
+// Report functions
+async function sendDataToServer(url, data) {
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+        console.error('[sendDataToServer] Failed to send data to server');
+        return;
+    }
 }
 
 // var target;

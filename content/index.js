@@ -91,8 +91,21 @@ function run() {
           saveSettings(settings);
           createStartingPosition(settings);
 
-          const message = `[${settings.userName} (${currentQTMode === 'QT Demo' ? 'D' : 'R'})] ${currentBalance}, M: ${settings.multiplier}, A: ${settings.defaultAmount}`;
-          setTimeout(() => sendSlackMessage(message), 0);
+          const data = {
+            userName: settings.userName,
+            pair: currentPair,
+            payout: payoutNumber,
+            qtMode: currentQTMode,
+            balance: currentBalance,
+          };
+
+          if(settings.slackChannelID){
+            setTimeout(() => sendSlackMessage(JSON.stringify(data)), 0);
+          }
+
+          if(settings.urlDataServer){
+            setTimeout(() => sendDataToServer(settings.urlDataServer, data), 0);
+          }
         }
       } else {
         getActivePositions((positions, price, amount, outcome, timeLeft) => {

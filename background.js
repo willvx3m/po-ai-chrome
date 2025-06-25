@@ -1,12 +1,16 @@
-const SLACK_BOT_TOKEN = 'xoxb-523895185494-9041191622752-HM9RyRlScZgl0qeUYzVcyzAI';
-let CHANNEL_ID = 'C090JCZ6TPU';
+let SLACK_BOT_TOKEN = 'xoxb-523895185494-9041191622752-HM9RyRlScZgl0qeUYzVcyzAI';
+let CHANNEL_ID = '';
 
 async function sendSlackNotification(message) {
   chrome.storage?.local?.get(['settings'], async (data) => {
     const settings = data.settings;
     const customChannelID = settings?.slackChannelID;
-    if (customChannelID) {
+    const customBotToken = settings?.slackBotToken;
+    if (customChannelID && customBotToken) {
+      SLACK_BOT_TOKEN = customBotToken;
       CHANNEL_ID = customChannelID;
+    } else {
+      return;
     }
 
     try {
