@@ -270,9 +270,9 @@ function savePriceTrack(filePath, prices) {
 SYMBOLS.forEach(symbol => getPrices(symbol, (prices) => {
     const settings = DEFAULT_SETTINGS;
     const includeAnalysisPerPosition = false;
-    const isSavingGEM = false;
-    const isSavingBalanceTrack = true;
-    const isSavingPriceTrack = false;
+    const isSavingGEM = true;
+    const isSavingBalanceTrack = false;
+    const isSavingPriceTrack = true;
 
     for (var _defaultAmount = 1; _defaultAmount <= 1; _defaultAmount++) {
         for (var _defaultDuration = 1; _defaultDuration <= 10; _defaultDuration++) {
@@ -291,7 +291,7 @@ SYMBOLS.forEach(symbol => getPrices(symbol, (prices) => {
                             settings.smaSampleCount = _smaSampleCount;
                             const result = main(symbol, prices, settings, includeAnalysisPerPosition);
                             if (result.totalProfit > 0) {
-                                console.log(`[GEM] DA:${_defaultAmount} DD:${_defaultDuration} MP:${_maxPositionLimit} MA:${_maxPositionAmount} IN:${_interval} SM:${_smaSampleCount} TP:${result.totalProfit} TA:${result.totalAmount} TR:${result.totalTrades} WR:${result.winRate} MP:${result.maxPlus} MM:${result.maxMinus}`);
+                                console.log(`[GEM] [${symbol}] DA:${_defaultAmount} DD:${_defaultDuration} MP:${_maxPositionLimit} MA:${_maxPositionAmount} IN:${_interval} SM:${_smaSampleCount} TP:${result.totalProfit} TA:${result.totalAmount} TR:${result.totalTrades} WR:${result.winRate} MP:${result.maxPlus} MM:${result.maxMinus}`);
 
                                 if (isSavingGEM) {
                                     fs.appendFileSync(
