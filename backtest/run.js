@@ -1,29 +1,30 @@
 const fs = require('fs');
 const { parse } = require('csv-parse');
-// const { createStartingPosition, calculateNextPosition, DEFAULT_SETTINGS } = require('./strategy');
-// const { createStartingPosition, calculateNextPosition, DEFAULT_SETTINGS } = require('./strategy-bolk-2');
-// const { createStartingPosition, calculateNextPosition, DEFAULT_SETTINGS } = require('./strategy-martingale-3');
-// const { createStartingPosition, calculateNextPosition, DEFAULT_SETTINGS } = require('./strategy-mama');
-const { createStartingPosition, calculateNextPosition, DEFAULT_SETTINGS } = require('./strategy-mama-3');
+const { createStartingPosition, calculateNextPosition, DEFAULT_SETTINGS } = require(
+    // './strategy/strategy'
+    // './strategy/strategy-bolk-2'
+    // './strategy/strategy-martingale-3'
+    // './strategy/strategy-mama'
+    './strategy/strategy-mama-3'
+);
 
-const period = '1d'; // 1w, 2w, 1m
-// const symbol = 'EUR/USDT';
-// const symbol = 'BTC/USDT';
-// const symbol = 'aud/cad';
-// const symbol = 'aud/cny';
-// const symbol = 'gecko-eurc/usdc';
-// const symbol = 'gecko-chf/usdc';
-// const symbol = 'gecko-btc/usdt';
-const symbol = 'po-aud_chf_otc';
-const csvFile = `${symbol.replace('/', '_')}_ohlcv_${period}.csv`;
-const fixedProfit = 80;
+const SYMBOLS = [
+    // 'gecko-eurc/usdc',
+    // 'gecko-chf/usdc',
+    // 'gecko-btc/usdt',
+    'po-aud_chf_otc',
+    'po-aed_cny_otc',
+    'po-eur_usd_otc',
+    'po-aud_cad_otc'
+];
+const FIXED_PROFIT = 80;
 
 // Function to read CSV and extract close prices
-function getPrices(csvFile, symbol, callback) {
+function getPrices(symbol, callback) {
+    const csvFile = `ohlcv/${symbol.replace('/', '_')}.csv`;
+    console.log(symbol, csvFile);
     /**
-     * Extract close prices from the CSV file for the specified symbol.
-     * @param {string} csvFile - Path to the OHLCV CSV file.
-     * @param {string} symbol - Asset symbol (e.g., 'BTC/USDT' or 'EUR/USDT').
+     * Extract close prices from the CSV file.
      * @param {function} callback - Callback function to return the close prices array.
      * @returns {void} Calls callback with array of close prices.
      */
@@ -32,13 +33,11 @@ function getPrices(csvFile, symbol, callback) {
     fs.createReadStream(csvFile)
         .pipe(parse({ columns: true, trim: true }))
         .on('data', (row) => {
-            if (symbol === 'EUR/USDT' || symbol === 'BTC/USDT') {
-                if (row.symbol === symbol) {
-                    prices.push({
-                        price: parseFloat(row.close),
-                        timestamp: row.timestamp
-                    });
-                }
+            if (symbol.includes('EUR/USDT') || symbol.includes('BTC/USDT')) {
+                prices.push({
+                    price: parseFloat(row.close),
+                    timestamp: row.timestamp
+                });
             } else if (symbol.startsWith('gecko-')) {
                 prices.push({
                     price: parseFloat(row.Close),
@@ -58,8 +57,6 @@ function getPrices(csvFile, symbol, callback) {
                 });
 
             }
-            // console.log(row['Open time'], row['Open price']);
-            // console.log(row);
         })
         .on('end', () => {
             callback(prices);
@@ -96,11 +93,10 @@ function evaluate(price, positions) {
 }
 
 // Function to simulate the backtest
-function simulate(prices, symbol, settings) {
+function simulate(prices, settings) {
     /**
      * Backtest the strategy by iterating through the price array and creating/evaluating positions.
      * @param {Array} prices - Array of close prices.
-     * @param {string} symbol - Asset symbol (e.g., 'BTC/USDT' or 'EUR/USDT').
      * @returns {Object} Results including total profit, number of trades, win rate, and trade log.
      */
     const activePositions = [];
@@ -112,7 +108,7 @@ function simulate(prices, symbol, settings) {
 
     for (let i = 0; i < prices.length; i++) {
         const currentPrice = prices[i].price;
-        const currentPayout = prices[i].payout || fixedProfit;
+        const currentPayout = prices[i].payout || FIXED_PROFIT;
         const currentTime = new Date(prices[i].timestamp).getTime();
 
         if (activePositions.length > 0 && activePositions[0].endsAt <= currentTime) {
@@ -144,7 +140,6 @@ function simulate(prices, symbol, settings) {
         }
         if (newPositions && activePositions.length < settings.maxPositionLimit) {
             newPositions.forEach(position => {
-                // position.symbol = symbol; // Add symbol to position
                 activePositions.push(position);
                 totalTrades++;
             });
@@ -158,19 +153,17 @@ function simulate(prices, symbol, settings) {
     };
 }
 
-function main(prices, settings) {
+function main(symbol, prices, settings, includeAnalysisPerPosition = false) {
     if (prices.length === 0) {
-        console.error('No prices found for the specified symbol.');
+        console.error('No prices record');
         return;
     }
-    if (symbol === 'aud/cad' || symbol === 'aud/cny') {
+    if (symbol.includes('aud/cad') || symbol.includes('aud/cny')) {
         prices = prices.reverse(); // only for aud/cny, aud/cad
     }
 
-    console.log(prices[0]);
-
     // Run backtest
-    const results = simulate(prices, symbol, settings);
+    const results = simulate(prices, settings);
 
     // Print results
     let totalAmount = 0;
@@ -178,6 +171,10 @@ function main(prices, settings) {
     let totalMinus = 0;
     let totalPlusCount = 0;
     let totalMinusCount = 0;
+    let maxPlus = 0;
+    let maxMinus = 0;
+    let balanceDelta = 0;
+    const balanceTrack = [];
 
     results.tradeLog/*.slice(0, 5)*/.forEach((trade, index) => {
         const amount = trade.positions.reduce((acc, pos) => acc + pos.amount, 0);
@@ -190,6 +187,16 @@ function main(prices, settings) {
             totalMinusCount++;
         }
 
+        balanceDelta += trade.profit;
+        if (balanceDelta > maxPlus) {
+            maxPlus = balanceDelta;
+        }
+        if (balanceDelta < maxMinus) {
+            maxMinus = balanceDelta;
+        }
+
+        balanceTrack.push(balanceDelta);
+
         console.log(
             `# ${index + 1}:`,
             `Amount:`, amount,
@@ -201,24 +208,26 @@ function main(prices, settings) {
         );
     });
 
-    for (var p = 1; p <= 10; p++) {
-        const pResults = results.tradeLog.filter(trade => trade.positions.length === p);
-        if (pResults.length === 0) {
-            continue;
+    if (includeAnalysisPerPosition) {
+        for (var p = 1; p <= 10; p++) {
+            const pResults = results.tradeLog.filter(trade => trade.positions.length === p);
+            if (pResults.length === 0) {
+                continue;
+            }
+            const totalProfit = pResults.reduce((acc, trade) => acc + trade.profit, 0);
+            const totalPlus = pResults.reduce((acc, trade) => acc + (trade.profit > 0 ? trade.profit : 0), 0);
+            const totalMinus = pResults.reduce((acc, trade) => acc + (trade.profit < 0 ? trade.profit : 0), 0);
+            const totalPlusCount = pResults.reduce((acc, trade) => acc + (trade.profit > 0 ? 1 : 0), 0);
+            const totalMinusCount = pResults.reduce((acc, trade) => acc + (trade.profit < 0 ? 1 : 0), 0);
+            console.log(`\nPositions: ${p}`, totalProfit > 0 ? '[WIN]' : '[LOSS]',
+                `\nTotal Sessions: ${pResults.length}`,
+                `\nTotal Trades: ${pResults.reduce((acc, trade) => acc + trade.positions.length, 0)}`,
+                `\nTotal Profit: ${totalProfit.toFixed(2)}$`,
+                `\nTotal Plus: ${totalPlus.toFixed(2)}$ (${totalPlusCount})`,
+                `\nTotal Minus: ${totalMinus.toFixed(2)}$ (${totalMinusCount})`,
+                `\nWin Rate: ${(totalPlusCount / (totalPlusCount + totalMinusCount) * 100).toFixed(2)}%`
+            );
         }
-        const totalProfit = pResults.reduce((acc, trade) => acc + trade.profit, 0);
-        const totalPlus = pResults.reduce((acc, trade) => acc + (trade.profit > 0 ? trade.profit : 0), 0);
-        const totalMinus = pResults.reduce((acc, trade) => acc + (trade.profit < 0 ? trade.profit : 0), 0);
-        const totalPlusCount = pResults.reduce((acc, trade) => acc + (trade.profit > 0 ? 1 : 0), 0);
-        const totalMinusCount = pResults.reduce((acc, trade) => acc + (trade.profit < 0 ? 1 : 0), 0);
-        console.log(`\nPositions: ${p}`, totalProfit > 0 ? '[WIN]' : '[LOSS]',
-            `\nTotal Sessions: ${pResults.length}`,
-            `\nTotal Trades: ${pResults.reduce((acc, trade) => acc + trade.positions.length, 0)}`,
-            `\nTotal Profit: ${totalProfit.toFixed(2)}$`,
-            `\nTotal Plus: ${totalPlus.toFixed(2)}$ (${totalPlusCount})`,
-            `\nTotal Minus: ${totalMinus.toFixed(2)}$ (${totalMinusCount})`,
-            `\nWin Rate: ${(totalPlusCount / (totalPlusCount + totalMinusCount) * 100).toFixed(2)}%`
-        );
     }
 
     console.log(`\nTotal Amount: ${totalAmount}`);
@@ -227,38 +236,44 @@ function main(prices, settings) {
     console.log(`Total Trades: ${results.totalTrades}`);
     console.log(`Total Plus: ${totalPlus.toFixed(2)}$ (${totalPlusCount})`);
     console.log(`Total Minus: ${totalMinus.toFixed(2)}$ (${totalMinusCount})`);
+    console.log(`Max Plus: ${maxPlus.toFixed(2)}$`);
+    console.log(`Max Minus: ${maxMinus.toFixed(2)}$`);
     console.log(`Win Rate: ${(totalPlusCount / (totalPlusCount + totalMinusCount) * 100).toFixed(2)}%`);
-
-
-    // Generate chart data
-    // const chartData = {
-    //     symbol: symbol,
-    //     prices: prices.map(d => d.price),
-    //     timestamps: prices.map(d => new Date(d.timestamp).toLocaleString('en-US', {
-    //         timeZone: 'UTC',
-    //         month: 'short',
-    //         day: 'numeric',
-    //         hour: '2-digit',
-    //         minute: '2-digit',
-    //         hour12: false
-    //     }))
-    // };
-
-    // Save chart data to JSON file
-    // fs.writeFileSync('chart_data.json', JSON.stringify(chartData, null, 2));
-    // console.log('Chart data saved to chart_data.json');
 
     return {
         totalAmount: totalAmount,
         totalProfit: results.totalProfit.toFixed(2) * 1,
         totalTrades: results.totalTrades,
         tradeLog: results.tradeLog,
-        winRate: (totalPlusCount / (totalPlusCount + totalMinusCount) * 100).toFixed(2)
+        winRate: (totalPlusCount / (totalPlusCount + totalMinusCount) * 100).toFixed(2),
+        maxPlus: maxPlus.toFixed(2),
+        maxMinus: maxMinus.toFixed(2),
+        balanceTrack: balanceTrack,
+        prices
     }
 }
 
-getPrices(csvFile, symbol, (prices) => {
+function savePriceTrack(filePath, prices) {
+    // timestamps: prices.map(d => new Date(d.timestamp).toLocaleString('en-US', {
+    //     timeZone: 'UTC',
+    //     month: 'short',
+    //     day: 'numeric',
+    //     hour: '2-digit',
+    //     minute: '2-digit',
+    //     hour12: false
+    // }))
+    fs.writeFileSync(
+        filePath,
+        prices.map(p => p.price).join('\n')
+    );
+}
+SYMBOLS.forEach(symbol => getPrices(symbol, (prices) => {
     const settings = DEFAULT_SETTINGS;
+    const includeAnalysisPerPosition = false;
+    const isSavingGEM = false;
+    const isSavingBalanceTrack = true;
+    const isSavingPriceTrack = false;
+
     for (var _defaultAmount = 1; _defaultAmount <= 1; _defaultAmount++) {
         for (var _defaultDuration = 1; _defaultDuration <= 10; _defaultDuration++) {
             for (var _maxPositionLimit = 1; _maxPositionLimit <= 6; _maxPositionLimit++) {
@@ -274,11 +289,30 @@ getPrices(csvFile, symbol, (prices) => {
                             settings.maxPositionAmount = _maxPositionAmount;
                             settings.interval = _interval;
                             settings.smaSampleCount = _smaSampleCount;
-                            const result = main(prices, settings);
+                            const result = main(symbol, prices, settings, includeAnalysisPerPosition);
                             if (result.totalProfit > 0) {
-                                console.log(`[GEM] DA:${_defaultAmount} DD:${_defaultDuration} MP:${_maxPositionLimit} MA:${_maxPositionAmount} IN:${_interval} SM:${_smaSampleCount} TP:${result.totalProfit} TA:${result.totalAmount} TR:${result.totalTrades} WR:${result.winRate}`);
+                                console.log(`[GEM] DA:${_defaultAmount} DD:${_defaultDuration} MP:${_maxPositionLimit} MA:${_maxPositionAmount} IN:${_interval} SM:${_smaSampleCount} TP:${result.totalProfit} TA:${result.totalAmount} TR:${result.totalTrades} WR:${result.winRate} MP:${result.maxPlus} MM:${result.maxMinus}`);
 
-                                fs.appendFileSync('gem.csv', `\n${symbol},${_defaultAmount},${_defaultDuration},${_maxPositionLimit},${_maxPositionAmount},${_interval},${_smaSampleCount},${result.totalProfit},${result.totalAmount},${result.totalTrades},${result.winRate}`);
+                                if (isSavingGEM) {
+                                    fs.appendFileSync(
+                                        'gem.csv',
+                                        `\n${symbol},${_defaultAmount},${_defaultDuration},${_maxPositionLimit},${_maxPositionAmount},${_interval},${_smaSampleCount},${result.totalProfit},${result.totalAmount},${result.totalTrades},${result.winRate},${result.maxPlus},${result.maxMinus}`
+                                    );
+                                }
+
+                                if (isSavingBalanceTrack) {
+                                    fs.appendFileSync(
+                                        `balance_track/${symbol.replace('/', '_')}_DD_${settings.defaultDuration}_MP_${settings.maxPositionLimit}_MA_${settings.maxPositionAmount}_SMA_${settings.smaSampleCount}.csv`,
+                                        result.balanceTrack.join('\n')
+                                    );
+                                }
+
+                                if (isSavingPriceTrack) {
+                                    savePriceTrack(
+                                        `price_track/${symbol.replace('/', '_')}.csv`,
+                                        result.prices
+                                    );
+                                }
                             }
                         }
                     }
@@ -286,4 +320,4 @@ getPrices(csvFile, symbol, (prices) => {
             }
         }
     }
-});
+}));

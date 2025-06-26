@@ -1,7 +1,10 @@
 node_modules
 *.log
+*.json
 *.csv
 *.zip
 *.xlsx
 videos
 .DS_Store
+
+backtest/balance_track
