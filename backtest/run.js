@@ -5,7 +5,8 @@ const { createStartingPosition, calculateNextPosition, DEFAULT_SETTINGS } = requ
     // './strategy/strategy-bolk-2'
     // './strategy/strategy-martingale-3'
     // './strategy/strategy-mama'
-    './strategy/strategy-mama-3'
+    // './strategy/strategy-mama-3'
+    './strategy/strategy-mama-4'
 );
 
 const SYMBOLS = [
@@ -135,7 +136,8 @@ function simulate(prices, settings) {
             newPositions = calculateNextPosition(activePositions, currentPrice, currentPayout, settings, currentTime);
         }
         settings.priceBook.push(currentPrice);
-        while (settings.priceBook.length > settings.smaSampleCount) {
+        const keepSampleCount = settings.smaBaseSampleCount || settings.smaSampleCount;
+        while (settings.priceBook.length > keepSampleCount) {
             settings.priceBook.shift();
         }
         if (newPositions && activePositions.length < settings.maxPositionLimit) {
@@ -271,47 +273,50 @@ SYMBOLS.forEach(symbol => getPrices(symbol, (prices) => {
     const settings = DEFAULT_SETTINGS;
     const includeAnalysisPerPosition = false;
     const isSavingGEM = true;
-    const isSavingBalanceTrack = false;
-    const isSavingPriceTrack = true;
+    const isSavingBalanceTrack = true;
+    const isSavingPriceTrack = false;
 
     for (var _defaultAmount = 1; _defaultAmount <= 1; _defaultAmount++) {
         for (var _defaultDuration = 1; _defaultDuration <= 10; _defaultDuration++) {
-            for (var _maxPositionLimit = 1; _maxPositionLimit <= 6; _maxPositionLimit++) {
+            for (var _maxPositionLimit = 2; _maxPositionLimit <= 6; _maxPositionLimit++) {
                 for (var _smaSampleCount = 6; _smaSampleCount <= 60; _smaSampleCount += 6) {
-                    for (var _maxPositionAmount = 100; _maxPositionAmount <= 100; _maxPositionAmount++) {
-                        for (var _interval = 10000; _interval <= 10000; _interval += 10000) {
-                            settings.defaultAmount = _defaultAmount;
-                            settings.defaultDuration = _defaultDuration;
-                            if (!symbol.startsWith('po-')) {
-                                settings.defaultDuration = settings.defaultDuration * 6;
-                            }
-                            settings.maxPositionLimit = _maxPositionLimit;
-                            settings.maxPositionAmount = _maxPositionAmount;
-                            settings.interval = _interval;
-                            settings.smaSampleCount = _smaSampleCount;
-                            const result = main(symbol, prices, settings, includeAnalysisPerPosition);
-                            if (result.totalProfit > 0) {
-                                console.log(`[GEM] [${symbol}] DA:${_defaultAmount} DD:${_defaultDuration} MP:${_maxPositionLimit} MA:${_maxPositionAmount} IN:${_interval} SM:${_smaSampleCount} TP:${result.totalProfit} TA:${result.totalAmount} TR:${result.totalTrades} WR:${result.winRate} MP:${result.maxPlus} MM:${result.maxMinus}`);
-
-                                if (isSavingGEM) {
-                                    fs.appendFileSync(
-                                        'gem.csv',
-                                        `\n${symbol},${_defaultAmount},${_defaultDuration},${_maxPositionLimit},${_maxPositionAmount},${_interval},${_smaSampleCount},${result.totalProfit},${result.totalAmount},${result.totalTrades},${result.winRate},${result.maxPlus},${result.maxMinus}`
-                                    );
+                    for (var _smaBaseSampleCount = _smaSampleCount * 2; _smaBaseSampleCount <= 180; _smaBaseSampleCount += 12) {
+                        for (var _maxPositionAmount = 100; _maxPositionAmount <= 100; _maxPositionAmount++) {
+                            for (var _interval = 10000; _interval <= 10000; _interval += 10000) {
+                                settings.defaultAmount = _defaultAmount;
+                                settings.defaultDuration = _defaultDuration;
+                                if (!symbol.startsWith('po-')) {
+                                    settings.defaultDuration = settings.defaultDuration * 6;
                                 }
+                                settings.maxPositionLimit = _maxPositionLimit;
+                                settings.maxPositionAmount = _maxPositionAmount;
+                                settings.interval = _interval;
+                                settings.smaSampleCount = _smaSampleCount;
+                                settings.smaBaseSampleCount = _smaBaseSampleCount;
+                                const result = main(symbol, prices, settings, includeAnalysisPerPosition);
+                                if (result.totalProfit > 0) {
+                                    console.log(`[GEM] [${symbol}] DA:${_defaultAmount} DD:${_defaultDuration} MP:${_maxPositionLimit} MA:${_maxPositionAmount} IN:${_interval} SMA:${_smaSampleCount} SMAB:${_smaBaseSampleCount} TP:${result.totalProfit} TA:${result.totalAmount} TR:${result.totalTrades} WR:${result.winRate} MP:${result.maxPlus} MM:${result.maxMinus}`);
 
-                                if (isSavingBalanceTrack) {
-                                    fs.appendFileSync(
-                                        `balance_track/${symbol.replace('/', '_')}_DD_${settings.defaultDuration}_MP_${settings.maxPositionLimit}_MA_${settings.maxPositionAmount}_SMA_${settings.smaSampleCount}.csv`,
-                                        result.balanceTrack.join('\n')
-                                    );
-                                }
+                                    if (isSavingGEM) {
+                                        fs.appendFileSync(
+                                            'gem.csv',
+                                            `\n${symbol},${_defaultAmount},${_defaultDuration},${_maxPositionLimit},${_maxPositionAmount},${_interval},${_smaSampleCount},${_smaBaseSampleCount},${result.totalProfit},${result.totalAmount},${result.totalTrades},${result.winRate},${result.maxPlus},${result.maxMinus}`
+                                        );
+                                    }
 
-                                if (isSavingPriceTrack) {
-                                    savePriceTrack(
-                                        `price_track/${symbol.replace('/', '_')}.csv`,
-                                        result.prices
-                                    );
+                                    if (isSavingBalanceTrack) {
+                                        fs.appendFileSync(
+                                            `balance_track/${symbol.replace('/', '_')}_DD_${settings.defaultDuration}_MP_${settings.maxPositionLimit}_MA_${settings.maxPositionAmount}_SMA_${settings.smaSampleCount}_SMAB_${settings.smaBaseSampleCount}.csv`,
+                                            result.balanceTrack.join('\n')
+                                        );
+                                    }
+
+                                    if (isSavingPriceTrack) {
+                                        savePriceTrack(
+                                            `price_track/${symbol.replace('/', '_')}.csv`,
+                                            result.prices
+                                        );
+                                    }
                                 }
                             }
                         }
