@@ -13,11 +13,23 @@ const SYMBOLS = [
     // 'gecko-eurc/usdc',
     // 'gecko-chf/usdc',
     // 'gecko-btc/usdt',
-    'po-aud_chf_otc',
-    'po-aed_cny_otc',
-    'po-eur_usd_otc',
-    'po-aud_cad_otc'
+    
+    // 'po-aud_chf_otc',
+    // 'po-aed_cny_otc',
+    // 'po-eur_usd_otc',
+    // 'po-aud_cad_otc',
+    // 'po-aud_usd_otc',
+    // 'po-aaa',
+
+    // 'po-aud_cad_otc_1',
+    // 'po-aud_cad_otc_2',
+    // 'po-aud_cad_otc_3',
+
+    'po-AUD-CAD-OTC-INPUT',
+    'po-AUD-USD-OTC-INPUT',
+    'po-EUR-USD-OTC-INPUT',
 ];
+const BACKTEST_IND = '0702-tri'
 const FIXED_PROFIT = 80;
 
 // Function to read CSV and extract close prices
@@ -197,7 +209,7 @@ function main(symbol, prices, settings, includeAnalysisPerPosition = false) {
             maxMinus = balanceDelta;
         }
 
-        balanceTrack.push(balanceDelta);
+        balanceTrack.push(balanceDelta.toFixed(2));
 
         console.log(
             `# ${index + 1}:`,
@@ -276,9 +288,11 @@ SYMBOLS.forEach(symbol => getPrices(symbol, (prices) => {
     const isSavingBalanceTrack = true;
     const isSavingPriceTrack = false;
 
+    // create balance_track_${BACKTEST_IND} folder if not exists
+
     for (var _defaultAmount = 1; _defaultAmount <= 1; _defaultAmount++) {
-        for (var _defaultDuration = 1; _defaultDuration <= 10; _defaultDuration++) {
-            for (var _maxPositionLimit = 2; _maxPositionLimit <= 6; _maxPositionLimit++) {
+        for (var _defaultDuration = 4; _defaultDuration <= 10; _defaultDuration++) {
+            for (var _maxPositionLimit = 3; _maxPositionLimit <= 6; _maxPositionLimit++) {
                 for (var _smaSampleCount = 6; _smaSampleCount <= 60; _smaSampleCount += 6) {
                     for (var _smaBaseSampleCount = _smaSampleCount * 2; _smaBaseSampleCount <= 180; _smaBaseSampleCount += 12) {
                         for (var _maxPositionAmount = 100; _maxPositionAmount <= 100; _maxPositionAmount++) {
@@ -299,21 +313,21 @@ SYMBOLS.forEach(symbol => getPrices(symbol, (prices) => {
 
                                     if (isSavingGEM) {
                                         fs.appendFileSync(
-                                            'gem.csv',
+                                            `gem-${BACKTEST_IND}.csv`,
                                             `\n${symbol},${_defaultAmount},${_defaultDuration},${_maxPositionLimit},${_maxPositionAmount},${_interval},${_smaSampleCount},${_smaBaseSampleCount},${result.totalProfit},${result.totalAmount},${result.totalTrades},${result.winRate},${result.maxPlus},${result.maxMinus}`
                                         );
                                     }
 
                                     if (isSavingBalanceTrack) {
                                         fs.appendFileSync(
-                                            `balance_track/${symbol.replace('/', '_')}_DD_${settings.defaultDuration}_MP_${settings.maxPositionLimit}_MA_${settings.maxPositionAmount}_SMA_${settings.smaSampleCount}_SMAB_${settings.smaBaseSampleCount}.csv`,
-                                            result.balanceTrack.join('\n')
+                                            `balance_track_${BACKTEST_IND}/${symbol.replace('/', '_')}_DD_${settings.defaultDuration}_MP_${settings.maxPositionLimit}_MA_${settings.maxPositionAmount}_SMA_${settings.smaSampleCount}_SMAB_${settings.smaBaseSampleCount}.csv`,
+                                            result.balanceTrack.join('\n\n')
                                         );
                                     }
 
                                     if (isSavingPriceTrack) {
                                         savePriceTrack(
-                                            `price_track/${symbol.replace('/', '_')}.csv`,
+                                            `price_track_${BACKTEST_IND}/${symbol.replace('/', '_')}.csv`,
                                             result.prices
                                         );
                                     }

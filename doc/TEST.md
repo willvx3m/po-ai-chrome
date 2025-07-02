@@ -195,5 +195,6 @@ Duration: 10m, Max Position: 5
 SMA Sample count: 6 (Recommended by backtesting, but still using maxSpike and <45s rule)
 
 [IMPORTANT] FIRST VPS RUNNING
+[RESULT] FAILED - window doesn't keep repainting; websocket connection closed
 
 START: 49971.20

@@ -2,9 +2,12 @@ node_modules
 *.log
 *.json
 *.csv
+*.png
 *.zip
+*.txt
 *.xlsx
 videos
 .DS_Store
 
-backtest/balance_track
+backtest/balance_track*
+backtest/price_track*
