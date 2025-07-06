@@ -2,6 +2,7 @@ const fs = require('fs');
 const { parse } = require('csv-parse');
 const { createStartingPosition, calculateNextPosition, DEFAULT_SETTINGS } = require(
     // './strategy/strategy'
+    // './strategy/strategy-leb'
     // './strategy/strategy-bolk-2'
     // './strategy/strategy-martingale-3'
     // './strategy/strategy-mama'
@@ -25,11 +26,11 @@ const SYMBOLS = [
     // 'po-aud_cad_otc_2',
     // 'po-aud_cad_otc_3',
 
-    'po-AUD-CAD-OTC-INPUT',
-    'po-AUD-USD-OTC-INPUT',
+    // 'po-AUD-CAD-OTC-INPUT',
+    // 'po-AUD-USD-OTC-INPUT',
     'po-EUR-USD-OTC-INPUT',
 ];
-const BACKTEST_IND = '0702-tri'
+const BACKTEST_IND = '0704-eurusd-martingale3'
 const FIXED_PROFIT = 80;
 
 // Function to read CSV and extract close prices
@@ -68,7 +69,6 @@ function getPrices(symbol, callback) {
                     price: parseFloat(row['Open price']),
                     timestamp: row['Open time']
                 });
-
             }
         })
         .on('end', () => {
@@ -289,6 +289,12 @@ SYMBOLS.forEach(symbol => getPrices(symbol, (prices) => {
     const isSavingPriceTrack = false;
 
     // create balance_track_${BACKTEST_IND} folder if not exists
+    if (isSavingBalanceTrack && !fs.existsSync(`balance_track_${BACKTEST_IND}`)) {
+        fs.mkdirSync(`balance_track_${BACKTEST_IND}`, { recursive: true });
+    }
+    if (isSavingPriceTrack && !fs.existsSync(`price_track_${BACKTEST_IND}`)) {
+        fs.mkdirSync(`price_track_${BACKTEST_IND}`, { recursive: true });
+    }
 
     for (var _defaultAmount = 1; _defaultAmount <= 1; _defaultAmount++) {
         for (var _defaultDuration = 4; _defaultDuration <= 10; _defaultDuration++) {

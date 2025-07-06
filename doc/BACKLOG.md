@@ -41,6 +41,8 @@ Check out PO youtube channel.
 - `run` can be called in parallel (eg. onPageLoad + manualStart)
 - PO closed for some reason (Moz: Around Jun 14th 10:00 AM) It kept restarting, but couldn't properly start going.
 - PO logged out in VPS after 2-3 days
+- Browser auto-restart (likely chrome update), but extension didn't restart
+- Any error happens, the timeout mechanism goes dead - blocks all further operation
 - Extension not started after Chrome re-launch after update
 - Summarize profits per stock > reason
 - Summarize profits per time > reason

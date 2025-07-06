@@ -79,7 +79,7 @@ async function checkDomainBatch(startIndex, batchSize) {
   const results = await Promise.all(promises);
 
   // Collect live domains
-  const liveDomains = results.filter(result => result.isLive).map(result => result.domain);
+  const liveDomains = results.filter(result => result.isLive).map(result => `https://${result.domain}`);
   if (liveDomains.length > 0) {
     await fs.appendFile(outputFile, liveDomains.join('\n') + '\n');
   }
