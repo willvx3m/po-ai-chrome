@@ -1,11 +1,12 @@
 {
   "manifest_version": 3,
   "name": "PO AI Trading",
-  "version": "3.0",
+  "version": "4.0",
   "description": "Do your thing",
   "permissions": ["activeTab", "scripting", "storage"],
   "host_permissions": [
-    "https://slack.com/*"
+    "https://slack.com/*",
+    "http://localhost:3000/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -21,7 +22,7 @@
   "content_scripts": [
     {
       "matches": ["https://*.pocketoption.com/*"],
-      "js": ["content/settings.js", "content/utils.js", "content/x-mama-3.js", "content/index.js"],
+      "js": ["content/settings.js", "content/utils.js", "content/x-martin-corpus.js", "content/index.js"],
       "note": "switch between maco.js and leb.js to change the strategy"
     }
   ]

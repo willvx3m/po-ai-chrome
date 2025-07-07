@@ -197,6 +197,15 @@ document.getElementById('buttonSmaSampleCount').addEventListener('click', () => 
   });
 });
 
+document.getElementById('buttonPreferredPair').addEventListener('click', () => {
+  const preferredPair = document.getElementById('preferredPair').value;
+  console.log('[buttonPreferredPair] Preferred Pair:', preferredPair);
+  settings.preferredPair = preferredPair;
+  chrome.storage.local.set({ settings }, () => {
+    console.log('[buttonPreferredPair] New settings', settings);
+    displaySettings(settings);
+  });
+});
 
 document.getElementById('buttonUrlDataServer').addEventListener('click', () => {
   const urlDataServer = document.getElementById('urlDataServer').value;
@@ -206,6 +215,20 @@ document.getElementById('buttonUrlDataServer').addEventListener('click', () => {
     console.log('[buttonUrlDataServer] New settings', settings);
     displaySettings(settings);
   });
+});
+
+document.getElementById('buttonUrlQueryServer').addEventListener('click', () => {
+  const urlQueryServer = document.getElementById('urlQueryServer').value;
+  console.log('[buttonUrlQueryServer] URL Query Server:', urlQueryServer);
+  settings.urlQueryServer = urlQueryServer;
+  chrome.storage.local.set({ settings }, () => {
+    console.log('[buttonUrlQueryServer] New settings', settings);
+    displaySettings(settings);
+  });
+});
+
+document.getElementById('testQueryServer').addEventListener('click', () => {
+  chrome.runtime.sendMessage({ action: 'testQueryServer' });
 });
 
 function dispatchMessageToPO(action, data) {
@@ -244,6 +267,7 @@ function displaySettings(settings) {
     Base Amount: ${settings.baseAmount || "N/A"}<br>
     Risk Depth: ${settings.riskDepth || "N/A"}<br>
     ---------------------------<br>
+    Preferred Pair: ${settings.preferredPair || "N/A"}<br>
     Min Payout: ${settings.minPayout || "90"}<br>
     Include OTC: ${settings.includeOTC === false ? "No" : "Yes"}<br>
     SMA Sample Count: ${settings.smaSampleCount || "N/A"}<br>
@@ -251,5 +275,6 @@ function displaySettings(settings) {
     Slack Channel ID: ${settings.slackChannelID || "N/A"}<br>
     Slack Bot Token: ${settings.slackBotToken || "N/A"}<br>
     Data Server URL: ${settings.urlDataServer || "N/A"}<br>
+    Query Server URL: ${settings.urlQueryServer || "N/A"}<br>
   `;
 }

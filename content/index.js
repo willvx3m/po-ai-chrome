@@ -31,7 +31,8 @@ function run() {
   readSettings((settings) => {
     if (!settings) {
       console.log('[run] No settings found, using default settings');
-      saveSettings(settings = DEFAULT_SETTINGS);
+      settings = DEFAULT_SETTINGS;
+      saveSettings(settings);
     }
 
     const enabled = settings.enabled;
@@ -40,73 +41,117 @@ function run() {
       return;
     }
 
-    if (!settings.priceBook) {
-      settings.priceBook = {
-        pair: '',
-        book: []
-      };
-    }
-
     const minPayout = settings.minPayout || 90;
     const payoutNumber = getCurrentPayout();
     const currentPair = getCurrentPair();
-    if (currentPair != settings.priceBook.pair) {
-      settings.priceBook.pair = currentPair;
-      settings.priceBook.book = [];
+    const hasActivePosition = getHasActivePosition();
+
+    const notPreferredPair = (settings.includeOTC === false && currentPair.includes('OTC')) || (settings.preferredPair && !currentPair.includes(settings.preferredPair));
+    const payoutNotEnough = payoutNumber < minPayout;
+    const shouldChangePair = notPreferredPair || (payoutNotEnough && !settings.preferredPair);
+    const isRestartRequired = restartRequired(settings);
+
+    if (!hasActivePosition && isRestartRequired) {
+      console.log('[run] Restart required, reloading window');
+      saveSettings(settings);
+      window.location.reload();
+      return;
     }
 
-    const shouldChangePair = payoutNumber < minPayout || (settings.includeOTC === false && currentPair.includes('OTC'));
-    if (!shouldChangePair && settings.priceBook.book.length < settings.smaSampleCount) {
-      // Gather price
+    if (!settings.urlQueryServer) {
+      console.log('[run] Please set the Query server URL');
+    }
+
+    if (!settings.priceBook?.book) {
+      settings.priceBook = {
+        pair: currentPair,
+        book: [],
+      }
+    }
+
+    if (!hasActivePosition && !shouldChangePair && (settings.priceBook.book.length < settings.smaSampleCount || payoutNotEnough || !settings.urlQueryServer)) {
       console.log('[run] Gathering price for', currentPair, ' Book length:', settings.priceBook.book.length);
       if (openPendingTrades()) {
         const currentPrice = getCurrentPrice();
         if (currentPrice) {
-          settings.priceBook.book.push(currentPrice);
+          insertPriceBook(settings, currentPrice, currentPair);
           saveSettings(settings);
         }
       }
+    } else if (!hasActivePosition && shouldChangePair) {
+      console.log(`[run] Pair change required, CurrentPayout: (${payoutNumber}), MinPayout: (${minPayout}), includeOTC: (${settings.includeOTC}), PreferredPair: (${settings.preferredPair})`);
+      changeTopPairAndOpenActiveTrades(minPayout, settings.includeOTC, settings.preferredPair);
+      return;
     } else if (openActiveTrades()) {
-      const currentBalance = getCurrentBalance();
-      const currentQTMode = getCurrentQTMode();
-      console.log('[run] Balance:', currentBalance, 'Mode:', currentQTMode, 'Payout:', payoutNumber);
-
-      if (!hasActivePosition()) {
-        if (shouldChangePair) {
-          console.log(`[run] Pair change required, CurrentPayout: (${payoutNumber}), MinPayout: (${minPayout}), includeOTC: (${settings.includeOTC})`);
-          changeTopPairAndOpenActiveTrades(minPayout, settings.includeOTC);
-          return;
-        } else {
-          console.log('[run] No active position, creating a new position');
-          if (restartRequired(settings)) {
-            console.log('[run] Restart required, reloading window');
-            saveSettings(settings);
-            window.location.reload();
-            return;
-          }
-
-          settings.savedBalance = currentBalance;
-          settings.savedQTMode = currentQTMode;
+      if (!hasActivePosition) {
+        const currentBalance = getCurrentBalance();
+        const currentQTMode = getCurrentQTMode();
+        console.log('[run] Balance:', currentBalance, 'Mode:', currentQTMode, 'Payout:', payoutNumber);
+        settings.savedBalance = currentBalance;
+        settings.savedQTMode = currentQTMode;
+        if (settings.baseAmount) {
           settings.defaultAmount = getDefaultAmount(currentBalance, settings.multiplier, settings.baseAmount, settings.riskDepth);
-          saveSettings(settings);
-          createStartingPosition(settings);
-
-          const data = {
-            userName: settings.userName,
-            pair: currentPair,
-            payout: payoutNumber,
-            qtMode: currentQTMode,
-            balance: currentBalance,
-          };
-
-          if(settings.slackChannelID){
-            setTimeout(() => sendSlackMessage(JSON.stringify(data)), 0);
-          }
-
-          if(settings.urlDataServer){
-            setTimeout(() => sendDataToServer(settings.urlDataServer, data), 0);
-          }
         }
+
+        setTimeout(() => {
+
+          fetch(settings.urlQueryServer, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              symbol: currentPair,
+              priceBook: settings.priceBook.book
+            })
+          })
+            .then(response => response.json())
+            .then(data => {
+              console.log('[run] Query server response:', data);
+              if (!data.success) {
+                console.log('[run] Invalid response from query server, skipping position creation');
+                return;
+              }
+
+              const strategy = data.bestMatch?.settings || {};
+              console.log('[run] Strategy:', strategy.defaultDuration, strategy.maxPositionLimit, strategy.defaultDirection);
+
+              if (strategy.defaultDuration) {
+                settings.defaultDuration = data.defaultDuration;
+              }
+              if (strategy.maxPositionLimit) {
+                settings.maxPositionLimit = data.maxPositionLimit;
+              }
+              if (strategy.defaultDirection) {
+                settings.defaultDirection = data.defaultDirection;
+              }
+              if (strategy.defaultAmount) {
+                settings.defaultAmount = data.defaultAmount;
+              }
+
+              saveSettings(settings);
+              createStartingPosition(settings);
+
+              const messageData = {
+                userName: settings.userName,
+                pair: currentPair,
+                payout: payoutNumber,
+                qtMode: currentQTMode,
+                balance: currentBalance,
+              };
+
+              if (settings.slackChannelID) {
+                setTimeout(() => sendSlackMessage(JSON.stringify(messageData)), 0);
+              }
+
+              if (settings.urlDataServer) {
+                setTimeout(() => sendDataToServer(settings.urlDataServer, messageData), 0);
+              }
+            })
+            .catch(error => {
+              console.error('[run] Error querying server:', error);
+            });
+        }, 0);
       } else {
         getActivePositions((positions, price, amount, outcome, timeLeft) => {
           console.log('[run] Positions:', positions);
@@ -117,8 +162,7 @@ function run() {
             return;
           }
 
-          settings.priceBook.book.push(price);
-          settings.priceBook.book.shift();
+          insertPriceBook(settings, price, currentPair);
           saveSettings(settings);
 
           if (positions.length < settings.maxPositionLimit) {

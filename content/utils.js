@@ -17,9 +17,9 @@ function getMarketSentiment() {
     return document.querySelector('div.market-watch-panel__content span.pb__number-start').innerText;
 }
 
-function hasActivePosition() {
-    const activePositions = document.querySelectorAll('div.deals-list__item div.animated');
-    return activePositions.length;
+function getHasActivePosition() {
+    const activePositionLength = document.querySelector('div.right-sidebar div.counter--open-orders span.counter__number')?.innerText;
+    return parseInt(activePositionLength) > 0;
 }
 
 function getActivePositions(callback) {
@@ -205,7 +205,7 @@ function getCurrentPrice() {
 }
 
 // Actions
-function changeTopPairAndOpenActiveTrades(minPayout, includeOTC) {
+function changeTopPairAndOpenActiveTrades(minPayout, includeOTC, preferredPair) {
     const pairDropDown = document.querySelector('a.pair-number-wrap');
     pairDropDown.click();
 
@@ -217,7 +217,7 @@ function changeTopPairAndOpenActiveTrades(minPayout, includeOTC) {
                 continue;
             }
             const payout = parseInt(pair.querySelector('span.alist__payout span')?.innerText || '0');
-            if (payout >= minPayout) {
+            if (payout >= minPayout && (!preferredPair || pairName.includes(preferredPair))) {
                 console.log('[changeTopPairAndOpenActiveTrades]', pairName, payout);
                 pair.click();
                 setTimeout(() => {

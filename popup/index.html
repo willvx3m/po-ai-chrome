@@ -17,11 +17,12 @@
 <body>
     <h1>Settings</h1>
     <div id="settingDisplay">Loading...</div>
-    <div style="text-align: center;">======================</div>
+    <br><br>
+    <div>---------------------------</div>
     <br>
     <button id="toggle">Enable/Disable</button>
-    <br>
-    <div style="text-align: center;">======================</div>
+    <br><br>
+    <div>---------------------------</div>
     <br>
     <label for="userName">UserName:</label>
     <input type="text" id="userName">
@@ -53,8 +54,8 @@
     <label for="maxPositionAmount">Max Position Amount:</label>
     <input type="text" id="maxPositionAmount">
     <button id="buttonMaxPositionAmount">Set</button>
-    <br>
-    <div style="text-align: center;">======================</div>
+    <br><br>
+    <div>---------------------------</div>
     <br>
     <label for="multiplier">Multiplier:</label>
     <input type="text" id="multiplier">
@@ -67,8 +68,12 @@
     <label for="riskDepth">Risk Depth:</label>
     <input type="text" id="riskDepth">
     <button id="buttonRiskDepth">Set</button>
+    <br><br>
+    <div>---------------------------</div>
     <br>
-    <div style="text-align: center;">======================</div>
+    <label for="preferredPair">Preferred Pair:</label>
+    <input type="text" id="preferredPair">
+    <button id="buttonPreferredPair">Set</button>
     <br>
     <label for="minPayout">Min Payout:</label>
     <input type="text" id="minPayout">
@@ -81,8 +86,8 @@
     <label for="smaSampleCount">SMA Sample Count:</label>
     <input type="text" id="smaSampleCount">
     <button id="buttonSmaSampleCount">Set</button>
-    <br>
-    <div style="text-align: center;">======================</div>
+    <br><br>
+    <div>---------------------------</div>
     <br>
     <label for="slackChannelID">Slack Channel ID:</label>
     <input type="text" id="slackChannelID">
@@ -96,9 +101,15 @@
     <input type="text" id="urlDataServer">
     <button id="buttonUrlDataServer">Set</button>
     <br>
-    <div style="text-align: center;">--- INLINE ACTION ---</div>
+    <label for="urlQueryServer">Query Server URL:</label>
+    <input type="text" id="urlQueryServer">
+    <button id="buttonUrlQueryServer">Set</button>
+    <br><br>
+    <div>--- INLINE ACTION ---</div>
     <br>
     <button id="testSlackMessage">Test Slack Message</button>
+    <br>
+    <button id="testQueryServer">Test Query Server</button>
     <br>
     <label for="duration">Duration (m):</label>
     <input type="text" id="duration">

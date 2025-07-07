@@ -11,19 +11,25 @@ function saveSettings(settings) {
     });
 }
 
-function checkAndSaveSettings(settings, currentBalance) {
-    // Skip flipping direction
-    // if (settings.savedBalance) {
-    //     const profit = currentBalance - settings.savedBalance;
-    //     const fullFailureSum = 1 + 2 + 4 + 8;
-    //     if (profit < 0 && Math.abs(profit) >= fullFailureSum) {
-    //         settings.defaultDirection = settings.defaultDirection === 'BUY' ? 'SELL' : 'BUY';
-    //         console.log('[cAS] Full failure detected, flipping direction to', settings.defaultDirection);
-    //     }
-    // }
+function insertPriceBook(settings, price, currentPair) {
+    if (!settings.priceBook) {
+        settings.priceBook = {
+            pair: currentPair,
+            book: [price]
+        };
+        return;
+    }
+    if (settings.priceBook.pair != currentPair) {
+        settings.priceBook.pair = currentPair;
+        settings.priceBook.book = [price];
+    } else {
+        settings.priceBook.book.push(price);
 
-    settings.savedBalance = currentBalance;
-    saveSettings(settings);
+        const maxPriceBookLength = settings.maxPriceBookLength || 60;
+        while (settings.priceBook?.book && settings.priceBook.book.length > maxPriceBookLength) {
+            settings.priceBook.book.shift();
+        }
+    }
 }
 
 function restartRequired(settings) {
@@ -35,7 +41,7 @@ function restartRequired(settings) {
             settings.previousRestart = now;
             return true;
         }
-        
+
         return false;
     } else {
         settings.previousRestart = now;
