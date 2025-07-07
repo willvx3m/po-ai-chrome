@@ -6,6 +6,7 @@
 // THEN EXPORT THEM
 
 const DEFAULT_SETTINGS = {
+    name: 'MARTINGALE',
     enabled: false,
     defaultAmount: 1,
     defaultDuration: 30, // * 6
@@ -15,6 +16,9 @@ const DEFAULT_SETTINGS = {
     defaultDirection: 'BUY',
     maxPriceDifference: 0,
     previousRestart: (new Date()) * 1,
+    createStartingPosition,
+    calculateNextPosition,
+    FIXED_PROFIT: 80,
 }
 
 function createStartingPosition(settings, price, payout, timestamp) {
@@ -39,7 +43,7 @@ function createStartingPosition(settings, price, payout, timestamp) {
 
 function calculateNextPosition(ps, price, newProfit, settings, timestamp) {
     const positions = ps;
-    const needNewPosition = settings.defaultDirection === 'BUY' ? positions.every(position => position.openPrice > price) : positions.every(position => position.openPrice < price);
+    const needNewPosition = positions.length < settings.maxPositionLimit && (settings.defaultDirection === 'BUY' ? positions.every(position => position.openPrice > price) : positions.every(position => position.openPrice < price));
 
     if (needNewPosition) {
         const newPositionAmount = positions[positions.length - 1].amount * 2;

@@ -1,6 +1,6 @@
 const fs = require('fs');
-const { parse } = require('csv-parse');
-const { createStartingPosition, calculateNextPosition, DEFAULT_SETTINGS } = require(
+const { getPrices, simulate } = require('./utils');
+const { DEFAULT_SETTINGS } = require(
     // './strategy/strategy'
     // './strategy/strategy-leb'
     // './strategy/strategy-bolk-2'
@@ -26,146 +26,11 @@ const SYMBOLS = [
     // 'po-aud_cad_otc_2',
     // 'po-aud_cad_otc_3',
 
-    // 'po-AUD-CAD-OTC-INPUT',
+    'po-AUD-CAD-OTC-INPUT',
     // 'po-AUD-USD-OTC-INPUT',
-    'po-EUR-USD-OTC-INPUT',
+    // 'po-EUR-USD-OTC-INPUT',
 ];
-const BACKTEST_IND = '0704-eurusd-martingale3'
-const FIXED_PROFIT = 80;
-
-// Function to read CSV and extract close prices
-function getPrices(symbol, callback) {
-    const csvFile = `ohlcv/${symbol.replace('/', '_')}.csv`;
-    console.log(symbol, csvFile);
-    /**
-     * Extract close prices from the CSV file.
-     * @param {function} callback - Callback function to return the close prices array.
-     * @returns {void} Calls callback with array of close prices.
-     */
-    const prices = [];
-
-    fs.createReadStream(csvFile)
-        .pipe(parse({ columns: true, trim: true }))
-        .on('data', (row) => {
-            if (symbol.includes('EUR/USDT') || symbol.includes('BTC/USDT')) {
-                prices.push({
-                    price: parseFloat(row.close),
-                    timestamp: row.timestamp
-                });
-            } else if (symbol.startsWith('gecko-')) {
-                prices.push({
-                    price: parseFloat(row.Close),
-                    timestamp: row.Timestamp
-                });
-            } else if (symbol.startsWith('po-')) {
-                prices.push({
-                    price: parseFloat(row.price),
-                    timestamp: row.timestamp,
-                    // payout: 92, //parseFloat(row.payout)
-                    payout: parseFloat(row.payout)
-                });
-            } else {
-                prices.push({
-                    price: parseFloat(row['Open price']),
-                    timestamp: row['Open time']
-                });
-            }
-        })
-        .on('end', () => {
-            callback(prices);
-        })
-        .on('error', (err) => {
-            console.error(`Error reading CSV: ${err.message}`);
-            callback([]);
-        });
-}
-
-// Function to evaluate positions
-function evaluate(price, positions) {
-    /**
-     * Calculate the profit/loss of all positions at the given price.
-     * @param {number} price - Current close price to evaluate positions.
-     * @param {Array} positions - Array of positions, each as { price, amount, direction, payout }.
-     * @returns {number} Total profit/loss for the positions.
-     */
-    let totalProfit = 0;
-    for (const pos of positions) {
-        const amount = pos.amount;
-        const profit = pos.profit;
-        const strike = pos.openPrice;
-        const direction = pos.direction;
-
-        // Check if position is in-the-money (ITM)
-        if ((direction === 'BUY' && price > strike) || (direction === 'SELL' && price < strike)) {
-            totalProfit += profit * amount / 100;
-        } else {
-            totalProfit -= amount; // Loss of investment
-        }
-    }
-    return totalProfit;
-}
-
-// Function to simulate the backtest
-function simulate(prices, settings) {
-    /**
-     * Backtest the strategy by iterating through the price array and creating/evaluating positions.
-     * @param {Array} prices - Array of close prices.
-     * @returns {Object} Results including total profit, number of trades, win rate, and trade log.
-     */
-    const activePositions = [];
-    settings.priceBook = [];
-    const tradeLog = [];
-    let totalProfit = 0;
-    let totalTrades = 0;
-    let winningTrades = 0;
-
-    for (let i = 0; i < prices.length; i++) {
-        const currentPrice = prices[i].price;
-        const currentPayout = prices[i].payout || FIXED_PROFIT;
-        const currentTime = new Date(prices[i].timestamp).getTime();
-
-        if (activePositions.length > 0 && activePositions[0].endsAt <= currentTime) {
-            const profit = evaluate(currentPrice, activePositions);
-            totalProfit += profit;
-            winningTrades += profit > 0 ? 1 : 0;
-            tradeLog.push({
-                endsAt: activePositions[0].endsAt,
-                positions: [...activePositions],
-                profit: profit,
-                endPrice: currentPrice,
-                endsAt: new Date(currentTime),
-                maxPriceDifference: settings.maxPriceDifference
-            });
-            activePositions.length = 0;
-            continue;
-        }
-
-        // Define new position
-        var newPositions;
-        if (activePositions.length === 0) {
-            newPositions = createStartingPosition(settings, currentPrice, currentPayout, currentTime);
-        } else {
-            newPositions = calculateNextPosition(activePositions, currentPrice, currentPayout, settings, currentTime);
-        }
-        settings.priceBook.push(currentPrice);
-        const keepSampleCount = settings.smaBaseSampleCount || settings.smaSampleCount;
-        while (settings.priceBook.length > keepSampleCount) {
-            settings.priceBook.shift();
-        }
-        if (newPositions && activePositions.length < settings.maxPositionLimit) {
-            newPositions.forEach(position => {
-                activePositions.push(position);
-                totalTrades++;
-            });
-        }
-    }
-
-    return {
-        totalProfit: totalProfit,
-        totalTrades: totalTrades,
-        tradeLog: tradeLog
-    };
-}
+const BACKTEST_IND = '0707-audcad'
 
 function main(symbol, prices, settings, includeAnalysisPerPosition = false) {
     if (prices.length === 0) {
@@ -281,7 +146,7 @@ function savePriceTrack(filePath, prices) {
         prices.map(p => p.price).join('\n')
     );
 }
-SYMBOLS.forEach(symbol => getPrices(symbol, (prices) => {
+SYMBOLS.forEach(symbol => getPrices(symbol, `ohlcv/${symbol.replace('/', '_')}.csv`, (prices) => {
     const settings = DEFAULT_SETTINGS;
     const includeAnalysisPerPosition = false;
     const isSavingGEM = true;
@@ -325,7 +190,7 @@ SYMBOLS.forEach(symbol => getPrices(symbol, (prices) => {
                                     }
 
                                     if (isSavingBalanceTrack) {
-                                        fs.appendFileSync(
+                                        fs.writeFileSync(
                                             `balance_track_${BACKTEST_IND}/${symbol.replace('/', '_')}_DD_${settings.defaultDuration}_MP_${settings.maxPositionLimit}_MA_${settings.maxPositionAmount}_SMA_${settings.smaSampleCount}_SMAB_${settings.smaBaseSampleCount}.csv`,
                                             result.balanceTrack.join('\n\n')
                                         );

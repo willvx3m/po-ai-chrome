@@ -12,15 +12,15 @@ const DEFAULT_SETTINGS = {
     smaSampleCount: 6 * 10, //  10 min
     smaBaseSampleCount: 6 * 30, // 30 mins
     priceBook: [],
+    FIXED_PROFIT: 80,
+    createStartingPosition,
+    calculateNextPosition,
 }
 
 function getSMA(prices, smaSampleCount) {
-    // if (!prices || prices.length < smaSampleCount) {
-    //     return 0;
-    // }
-
-    const sum = prices.slice(-smaSampleCount).reduce((sum, price) => sum + price, 0);
-    return smaSampleCount > 0 ? sum / smaSampleCount : 0;
+    const aggPrices = prices.slice(-smaSampleCount);
+    const sum = aggPrices.reduce((sum, price) => sum + price, 0);
+    return aggPrices.length > 0 ? sum / aggPrices.length : 0;
 }
 
 function createStartingPosition(settings, price, payout, timestamp) {
