@@ -117,16 +117,16 @@ function run() {
               console.log('[run] Strategy:', strategy.defaultDuration, strategy.maxPositionLimit, strategy.defaultDirection);
 
               if (strategy.defaultDuration) {
-                settings.defaultDuration = data.defaultDuration;
+                settings.defaultDuration = strategy.defaultDuration;
               }
               if (strategy.maxPositionLimit) {
-                settings.maxPositionLimit = data.maxPositionLimit;
+                settings.maxPositionLimit = strategy.maxPositionLimit;
               }
               if (strategy.defaultDirection) {
-                settings.defaultDirection = data.defaultDirection;
+                settings.defaultDirection = strategy.defaultDirection;
               }
               if (strategy.defaultAmount) {
-                settings.defaultAmount = data.defaultAmount;
+                settings.defaultAmount = strategy.defaultAmount;
               }
 
               saveSettings(settings);
