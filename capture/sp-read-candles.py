@@ -5,23 +5,25 @@ import pytesseract
 from PIL import Image
 import matplotlib.dates as mdates
 from datetime import datetime, timedelta
+import json
+import argparse
 
-# INPUT
-# IMAGE_PATH = '/Users/million/Downloads/aaa.png'
-# IMAGE_PATH = '/Volumes/WORK/Project/MegaVX/po-ai/capture/screenshot_20250710_100911-ok.png'
-# IMAGE_PATH = '/Volumes/WORK/Project/MegaVX/po-ai/capture/screenshot_20250710_100850.png'
-IMAGE_PATH = '/Volumes/WORK/Project/MegaVX/po-ai/capture/screenshot_20250710_100830-cur-price-top.png'
-# IMAGE_PATH = '/Volumes/WORK/Project/MegaVX/po-ai/capture/screenshot_20250710_100807-half-full.png'
-# IMAGE_PATH = '/Volumes/WORK/Project/MegaVX/po-ai/capture/screenshot_20250710_104532.png'
-IMAGE_WIDTH = 1920  # Width of the image
-IMAGE_HEIGHT = 1080  # Height of the image
+IMAGE_WIDTH = 1580  # Width of the image
+IMAGE_HEIGHT = 820  # Height of the image
 
-# TIME LABEL AND PRICE LABEL EXTRACTION
+# PRICE LABEL EXTRACTION CONSTANTS
 IMAGE_RIGHT_MARGIN = 0.05  # 10% from the right
 CONFIDENCE_THRESHOLD = 30  # Minimum confidence for OCR
 PRICE_LABEL_LINE_MARGIN = 10  # Offset y-position downward
 BG_COLOR_TOLERANCE = 20  # Tolerance for background color match
-IMAGE_BOTTOM_MARGIN_PX = 20  # Bottom area px to extract time label
+
+# TIME LABEL EXTRACTION CONSTANTS
+WINDOW_WIDTH = 28  # Width of the time label window in pixels
+WINDOW_HEIGHT = 20  # Height of the time label window in pixels
+SEARCH_STEP = 2    # Step size to move the window rightward in pixels
+LABEL_SPACING = IMAGE_WIDTH / 60  # Distance between consecutive time labels in pixels
+TIME_INCREMENT = timedelta(minutes=1)  # Increment time by 1 minute
+CONFIDENCE_THRESHOLD_LABEL = 85  # Confidence threshold for label correctness
 
 # TESSERACT CONFIG
 TIME_LABEL_TESSERACT_CONFIG = r'--psm 6 --oem 1 -c tessedit_char_whitelist=0123456789:'
@@ -37,7 +39,6 @@ def extract_price_labels(img_rgb):
 
     for i in range(len(data['text'])):
         text = data['text'][i].strip()
-        print(f"Text: {text}, Conf: {data['conf'][i]}")
         if text and data['conf'][i] > CONFIDENCE_THRESHOLD:  # Confidence threshold
             try:
                 # Extract bounding box coordinates
@@ -50,8 +51,6 @@ def extract_price_labels(img_rgb):
 
                 # Sample background color (top-left corner outside the text)
                 bg_color = img_rgb[top, left] if top > 0 and left > 0 else [0, 0, 0]  # Fallback to black
-
-                print(f"Text: {text}, Left: {left}, bg_color: {bg_color}")
 
                 # Define factor as a tuple of quantized attributes
                 factor = (
@@ -84,39 +83,82 @@ def extract_price_labels(img_rgb):
     print(f"Extracted price levels with y-positions: {list(zip(price_levels, y_positions))}")
     return price_levels, y_positions
 
-def extract_time_labels(img_rgb, desired_length):
-    """Extract first and last time labels from the bottom 20px and populate array with desired length."""
-    bottom_region = img_rgb[int(img_rgb.shape[0] - IMAGE_BOTTOM_MARGIN_PX):, :]  # Bottom 20px
-    bottom_text = pytesseract.image_to_string(bottom_region, config=TIME_LABEL_TESSERACT_CONFIG).strip()
-    print(f"Raw bottom text: {bottom_text}")
-    
-    # Extract first 5 and last 5 characters as time labels
-    first_time_str = bottom_text[:TIME_LABEL_CHAR_LENGTH].strip()
-    last_time_str = bottom_text[-TIME_LABEL_CHAR_LENGTH:].strip()
+def extract_time_labels(img_rgb):
+    """Extract time labels from the bottom of the image by searching for the first valid HH:MM label and populating an array based on x-position and time increment."""
+    # Extract image dimensions
+    height, width = img_rgb.shape[:2]
+    bottom_region_y = height - WINDOW_HEIGHT  # Start from the bottom
 
-    print(f"First time: {first_time_str}, Last time: {last_time_str}")
-    time_labels = []
-    for time_str in (first_time_str, last_time_str):
-        if len(time_str) == TIME_LABEL_CHAR_LENGTH and ':' in time_str:
-            try:
-                hour, minute = map(int, time_str.replace(' ', ':').split(':')[:2])  # Handle potential space
-                if 0 <= hour <= 23 and 0 <= minute <= 59:
-                    time_labels.append(datetime.strptime(time_str.replace(' ', ':'), '%H:%M').time())
-            except ValueError:
+    # Search for the first valid time label
+    first_label = None
+    for x in range(0, width - WINDOW_WIDTH + 1, SEARCH_STEP):
+        # Define the search window
+        window = img_rgb[bottom_region_y:bottom_region_y + WINDOW_HEIGHT, x:x + WINDOW_WIDTH]
+        # print(f"Window: {window.shape}, x: {x}")
+        data = pytesseract.image_to_data(window, output_type=pytesseract.Output.DICT)
+        # text = pytesseract.image_to_string(window, config=TIME_LABEL_TESSERACT_CONFIG).strip()
+        # print(f"Text: {text}")
+
+        for i in range(len(data['text'])):
+            # print(f"Text: {data['text'][i]}")
+            # print(f"Confidence: {data['conf'][i]}")
+            # print(f"Left: {data['left'][i]}")
+            # print(f"Top: {data['top'][i]}")
+            # print(f"Width: {data['width'][i]}")
+            # print(f"Height: {data['height'][i]}")
+
+            if data['conf'][i] < CONFIDENCE_THRESHOLD_LABEL:
                 continue
-    print(f"Extracted time labels: {[t.strftime('%H:%M') for t in time_labels]}")
-    
-    if len(time_labels) == 2:
-        start_time = datetime.combine(datetime.today(), time_labels[0])
-        end_time = datetime.combine(datetime.today(), time_labels[1])
-        time_step = (end_time - start_time) / (desired_length - 1) if desired_length > 1 else timedelta(minutes=1)
-        time_steps = [start_time + i * time_step for i in range(desired_length)]
-        return sorted(time_steps)  # Ensure chronological order
-    else:
-        print("Insufficient valid time labels detected. Need first and last times.")
-        return [datetime.combine(datetime.today(), datetime.min.time())] * desired_length
 
-def extract_candle_array(img_rgb, price_levels, price_y_positions, draw_flag=False):
+            text = data['text'][i]
+
+            # Validate HH:MM format
+            if len(text) == TIME_LABEL_CHAR_LENGTH and ':' in text:
+                try:
+                    hour, minute = map(int, text.split(':'))
+                    if 0 <= hour <= 23 and 0 <= minute <= 59:
+                        first_label = (x, text)  # (left_x, time_text)
+                        print(f"First valid time label found at x={x}: {text}")
+                        break
+                except ValueError:
+                    continue
+        
+        if first_label:
+            break
+
+    # Populate time label array
+    time_labels = []
+    if first_label:
+        start_x, start_time_text = first_label
+        start_time = datetime.strptime(start_time_text, '%H:%M').time()
+        start_full = datetime.combine(datetime.today(), start_time)
+
+        # Roll back to the first label that fits within the viewport
+        for i in range(60, -1, -1):  # Include the first label at i=0
+            if start_x > LABEL_SPACING:
+                start_x -= LABEL_SPACING
+                start_full -= TIME_INCREMENT
+                start_time = start_full.time()
+            else:
+                break
+
+        # Calculate the number of labels based on image width
+        max_x = width - WINDOW_WIDTH
+        num_labels = min((max_x - start_x) // LABEL_SPACING + 1, width // LABEL_SPACING)  # Ensure within image bounds
+
+        # Generate time labels
+        for i in range(int(num_labels)):
+            x_pos = start_x + i * LABEL_SPACING
+            if x_pos + WINDOW_WIDTH <= width:  # Stay within image bounds
+                current_time = start_full + i * TIME_INCREMENT
+                time_labels.append([int(x_pos + WINDOW_WIDTH // 2), current_time.time()])
+
+    if time_labels:
+        print(f"Extracted time labels: {[[t[0], t[1].strftime('%H:%M')] for t in time_labels]}")
+
+    return time_labels
+
+def extract_candle_array(img_rgb, price_levels, price_y_positions, time_steps, draw_flag=False):
     """Extract candle array with OHLCV as position data (x, y-coordinates) using contours and wicks, optionally drawing extracted areas."""
     # Convert to HSV for color-based segmentation
     hsv = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2HSV)
@@ -151,6 +193,15 @@ def extract_candle_array(img_rgb, price_levels, price_y_positions, draw_flag=Fal
             open_y = high_y
             close_y = low_y
 
+            # Find time label
+            time_label = None
+            for time_step in time_steps:
+                if time_step[0] >= x and time_step[0] <= x + w:
+                    time_label = time_step[1]
+                    break
+            if not time_label:
+                continue
+
             # Adjust margins for wick data
             if lines is not None:
                 closest_wick = []
@@ -179,17 +230,17 @@ def extract_candle_array(img_rgb, price_levels, price_y_positions, draw_flag=Fal
             low_price = base_price - (low_y * pixel_to_price)
 
             # Include x-position in the candle array
-            candle_array.append([x, open_y, close_y, high_y, low_y, open_price, close_price, high_price, low_price])  # [x, open_y, close_y, high_y, low_y, open_price, close_price, high_price, low_price]
+            candle_array.append([x + w // 2, open_y, close_y, high_y, low_y, open_price, close_price, high_price, low_price, time_label])
 
     # Sort candle_array by x-position to ensure chronological order
     candle_array = sorted(candle_array, key=lambda c: c[0])
 
     if draw_flag and candle_array:
-        for x, open_y, close_y, high_y, low_y, open_price, close_price, high_price, low_price in candle_array:
+        for x, open_y, close_y, high_y, low_y, open_price, close_price, high_price, low_price, time_label in candle_array:
             w = w if 'w' in locals() else 20  # Use contour width or approximate
             # Convert back to image coordinates for drawing (y decreases upward in display)
-            cv2.rectangle(img_rgb, (x, low_y), (x + w, high_y), (255, 255, 0), 2)  # Yellow for High/Low
-            cv2.rectangle(img_rgb, (x, open_y), (x + w, close_y), (255, 0, 255), 2)  # Blue for Open/Close
+            cv2.rectangle(img_rgb, (x - w // 2, low_y), (x + w // 2, high_y), (255, 255, 0), 2)  # Yellow for High/Low
+            cv2.rectangle(img_rgb, (x - w // 2, open_y), (x + w // 2, close_y), (255, 0, 255), 2)  # Blue for Open/Close
         plt.figure(figsize=(10, 5))
         plt.imshow(img_rgb)
         plt.title('Blue: Open/Close Bodies, Yellow: High/Low Full Range')
@@ -197,7 +248,7 @@ def extract_candle_array(img_rgb, price_levels, price_y_positions, draw_flag=Fal
 
     return candle_array
 
-def main(image_path):
+def main(image_path, draw_overlay, draw_chart):
     # Load and process image
     img = cv2.imread(image_path)
     if img is None:
@@ -210,19 +261,17 @@ def main(image_path):
         print("No price levels detected. Exiting.")
         return
 
-    candle_array = extract_candle_array(img_rgb, price_levels, y_positions, draw_flag=True)
+    time_steps = extract_time_labels(img_rgb)
+    if not time_steps:
+        print("No valid time labels found. Exiting.")
+        return
+
+    candle_array = extract_candle_array(img_rgb, price_levels, y_positions, time_steps, draw_flag=draw_overlay)
     if not candle_array:
         print("No candle data detected. Exiting.")
         return
 
-    desired_length = len(candle_array)
-    time_steps = extract_time_labels(img_rgb, desired_length)
-    if len(time_steps) != desired_length:
-        print("Time label array length mismatch. Exiting.")
-        return
-
     # Optional: Draw final chart directly from candle_array
-    draw_chart = True  # Set to False to skip chart drawing
     if draw_chart and candle_array:
         fig, ax = plt.subplots(figsize=(10, 6))
         ax.xaxis_date()
@@ -233,12 +282,13 @@ def main(image_path):
             max_x = max(x_positions)
             time_range = max_x - min_x if max_x > min_x else 1  # Avoid division by zero
 
-            for i, (x, open_y, close_y, high_y, low_y, open_price, close_price, high_price, low_price) in enumerate(candle_array):
+            for i, (x, open_y, close_y, high_y, low_y, open_price, close_price, high_price, low_price, time_label) in enumerate(candle_array):
                 # Map x-position to time_steps using interpolation
-                if time_range > 0:
-                    time_pos = (x - min_x) * len(candle_array) / time_range
-                else:
-                    time_pos = x # Fallback to index if range is zero
+                time_pos = i
+                # if time_range > 0:
+                #     time_pos = (x - min_x) * len(candle_array) / time_range
+                # else:
+                #     time_pos = x # Fallback to index if range is zero
 
                 # Draw wicks
                 ax.plot([time_pos, time_pos], [low_price, high_price], color='k', linewidth=1)  # Wicks
@@ -255,28 +305,45 @@ def main(image_path):
                 ax.add_patch(body)
 
         ax.set_xlim(- 1, len(candle_array) + 1)
-        ax.set_ylim(min(c[6] for c in candle_array), max(c[7] for c in candle_array))  # Use high_y and low_y for y-limits
+        min_price = min(c[6] for c in candle_array)
+        max_price = max(c[7] for c in candle_array)
+        ax.set_ylim(min_price - (max_price - min_price) * 0.05, max_price + (max_price - min_price) * 0.05)  # Use high_y and low_y for y-limits
         ax.set_title('Candlestick Chart from Extracted Data')
         ax.set_xlabel('Time')
         ax.set_ylabel('Price')
-        plt.xticks([t for t in range(len(candle_array))], [t.strftime('%H:%M') for t in time_steps], rotation=45)
+        plt.xticks([t for t in range(len(candle_array))], [c[9].strftime('%H:%M') for c in candle_array], rotation=45)
         plt.grid(True)
         plt.show()
 
     final_package = []
-    for i, (x, open_y, close_y, high_y, low_y, open_price, close_price, high_price, low_price) in enumerate(candle_array):
+    for i, (x, open_y, close_y, high_y, low_y, open_price, close_price, high_price, low_price, time_label) in enumerate(candle_array):
         final_package.append({
-            'time': time_steps[i].strftime('%H:%M'),
+            'time_label': time_label.strftime('%H:%M'),
             'x': x,
             'open': open_price,
             'close': close_price,
             'high': high_price,
-            'low': low_price
+            'low': low_price,
         })
-        print(f"Candle {i + 1} at {time_steps[i].strftime('%H:%M')}: x = {x}, Open = {open_price}, Close = {close_price}, "
+        print(f"Candle {i + 1} at {time_label.strftime('%H:%M')}: x = {x}, Open = {open_price}, Close = {close_price}, "
                 f"High = {high_price}, Low = {low_price}")
 
     return final_package
 
 if __name__ == "__main__":
-    main(IMAGE_PATH)
+    parser = argparse.ArgumentParser(description='Read candles from a screenshot.')
+    parser.add_argument('--path', type=str, help='Path to the image file')
+    parser.add_argument('--draw-overlay', type=bool, default=False, help='Draw overlay on the image')
+    parser.add_argument('--draw-chart', type=bool, default=False, help='Draw chart')
+    parser.add_argument('--save-json', type=bool, default=True, help='Save to json')
+    args = parser.parse_args()
+
+    if not args.path:
+        print("No image path provided. Exiting.")
+        exit()
+
+    result = main(args.path, args.draw_overlay, args.draw_chart)
+    if args.save_json:
+        filename = args.path.split('/')[-1].split('.')[0]
+        with open(f'json/{filename}.json', 'w') as f:
+            json.dump(result, f)

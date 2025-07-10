@@ -198,3 +198,15 @@ SMA Sample count: 6 (Recommended by backtesting, but still using maxSpike and <4
 [RESULT] FAILED - window doesn't keep repainting; websocket connection closed
 
 START: 49971.20
+
+
+25. Jul 7th 13:50 - (PC)
+STRATEGY: Martin Corpus
+User: Box (EUR/USD OTC)
+
+START: 43000.26
+END - 42784 ;(
+  
+FIRST 50mins - incorrect match due to missing EMA51
+ -> Update best match
+ -> Start after recording 50m

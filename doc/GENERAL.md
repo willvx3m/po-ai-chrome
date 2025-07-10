@@ -75,3 +75,6 @@ With 10 shots:\
 1. Check Demo/Live Environment
 2. Make sure to set AMOUNT LIMIT (PO UI)
 3. Check Extension settings
+
+consider alternatives like spread betting or CFDs with fixed returns
+

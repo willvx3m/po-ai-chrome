@@ -37,6 +37,7 @@ Check out PO youtube channel.
 [DONE] - Update slack message with packed/comprehensive status
 - Web server to monitor all machines (Aggregate Report + Chart + Alerts on withdraw, urgencies)
 
+
 ## Bugs & Issues
 - `run` can be called in parallel (eg. onPageLoad + manualStart)
 - PO closed for some reason (Moz: Around Jun 14th 10:00 AM) It kept restarting, but couldn't properly start going.
@@ -68,3 +69,19 @@ Check out PO youtube channel.
   - possibility of PO closing
   - less profit than self scaling
   - possibility of being chased
+  
+## Key takeaways
+- GET-DATA: backtesting data from po, scrap & screen capture & retrieve historical data (1m interval, OHLCV)
+- [TODO] scrapping script
+- METRICS: performance - profit/principle, risk - max drawdown
+- [TODO] update analyze script
+- METRICS: correlation coeffcient - use to measure relativity between pairs. eg: EUR/USD <-> USD/EUR
+- CONCURRENT TRADING: if any correlated pairs, reseach strategy
+- [TODO] measure this after getting backtesting data
+- MISTAKE TO AVOID: overfitting to historical data, look ahead bias, trading cost ???
+- [TODO] consider in strategy implementation
+- STRATEGY TYPE: trending following (MAMA), volatility based (still in research)
+- [TODO] Ability to define trend from "any" price curve? trend/lasting period/reversal timeline
+- WALK-FORWARD testing
+- PAPER-TRADING (demo)
+- SCENARIO-BASED TRADING (future)
