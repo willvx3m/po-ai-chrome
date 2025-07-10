@@ -44,10 +44,12 @@ Check in "Programs and Features" or reinstall if issues arise with OpenCV.
 
 1. Open PO platform and maximize it
 2. Go to settings and remove any unncessary ONs including NO BACKGROUND
-3. Run the following javscript in console:
+3. Set the chart range to 1H
+4. Run the following javscript in console:
 ```javascript
 document.querySelector('div.zoom-controls')?.remove(),
 document.querySelector('div.scroll-to-end')?.remove(),
+document.querySelector('div.deposit-btn-wrap div.h-btn__text').innerText = document.querySelector('span.current-symbol')?.innerText,
 document.querySelector('div.top-left-block')?.remove(),
 document.querySelector('div.control-wrap')?.remove()
 ```
