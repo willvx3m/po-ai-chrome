@@ -1,4 +1,46 @@
 ## PREREQUISITES
+Install python modules:
+```shell
+python -m pip install numpy opencv-python pytesseract pyautogui mss matplotlib Pillow
+```
+
+### Additional Dependency (MacOS)
+Requires the Tesseract OCR engine to be installed on your system. On macOS, install via Homebrew:
+```bash
+brew install tesseract
+```
+
+Ensure Tesseract is installed and its path is accessible. On macOS, after installing with Homebrew, you may need to add it to your PATH or specify the path in your script (e.g., pytesseract.pytesseract.tesseract_cmd = '/usr/local/bin/tesseract').
+
+### Additional Dependency (Windows)
+
+#### Tesseract OCR EnginePurpose
+Required by pytesseract to perform OCR on images.
+
+##### Installation
+Download the installer from UB Mannheim Tesseract at UB Mannheim or use the official site.
+Run the installer (e.g., tesseract-ocr-setup-5.3.0.exe) and follow the prompts. Default installation path is typically C:\Program Files\Tesseract-OCR.
+
+##### Configuration
+After installation, set the Tesseract path in your script or environment:
+```python
+import pytesseract
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+```
+
+##### Verification
+Run `tesseract -v` in Command Prompt to check the version.
+
+#### Visual C++ RedistributablePurpose
+Required by opencv-python and other compiled packages.
+
+##### Installation
+Download from Microsoft’s official site (x64 version recommended). Install if not already present.
+
+##### Verification 
+Check in "Programs and Features" or reinstall if issues arise with OpenCV.
+
+## GET READY PO
 
 1. Open PO platform and maximize it
 2. Go to settings and remove any unncessary ONs including NO BACKGROUND
@@ -24,7 +66,7 @@ python sp-capture-screen.py --left 87 --top 210 --width 1580 --height 820
 ```
 
 ## READ CANDLES
-Run the following command:
+GIVE VALID IMAGE PATH FOR THE DATE/TIME RANGE. Run the following command:
 ```shell
 python sp-read-candles.py --path {IMG_PATH} --draw-overlay True --draw-chart True --save-json True
 ```
@@ -55,6 +97,24 @@ TIME_LABEL_TESSERACT_CONFIG = r'--psm 6 --oem 1 -c tessedit_char_whitelist=01234
 PRICE_LABEL_TESSERACT_CONFIG = r'--psm 6 --oem 1 -c tessedit_char_whitelist=0123456789.'
 TIME_LABEL_CHAR_LENGTH = 5
 ```
+
+## NEXT STEPS
+
+### PO Auto Scroller
+This is a helper (Chrome extension) that scrolls the price chart automatically so that screen capture can run automatically.
+
+**Key points**
+- remove any overlapping elements (eg. like claiming prize)
+- avoid skipping any timeframe
+- **disable auto-jump to current time**
+
+### Automatic Candle Reader
+Let the candle reader work by himself with new screenshots.
+
+### Merge Json
+- read json files and merge them
+- add-up missing price values for missing time frames
+- refine data (no clear direction yet)
 
 ## MISCELLANOUS
 
