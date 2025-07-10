@@ -6,16 +6,32 @@ from PIL import Image
 import matplotlib.dates as mdates
 from datetime import datetime, timedelta
 
+# INPUT
+IMAGE_PATH = '/Users/million/Downloads/aaa.png'
+IMAGE_WIDTH = 1920  # Width of the image
+IMAGE_HEIGHT = 1080  # Height of the image
+
+# TIME LABEL AND PRICE LABEL EXTRACTION
+IMAGE_RIGHT_MARGIN = 0.1  # To Right margin as a percentage of image width (Price Label)
+PRICE_LABEL_LINE_MARGIN = 10 # To extract price labels, line margin with which the actual price line resides
+IMAGE_BOTTOM_MARGIN_PX = 20  # Bottom area px to extract time label
+
+# TESSERACT CONFIG
+CONFIDENCE_THRESHOLD = 50
+TIME_LABEL_TESSERACT_CONFIG = r'--psm 6 --oem 1 -c tessedit_char_whitelist=0123456789:'
+PRICE_LABEL_TESSERACT_CONFIG = r'--psm 6 --oem 1 -c tessedit_char_whitelist=0123456789.'
+TIME_LABEL_CHAR_LENGTH = 5
+
 def extract_price_labels(img_rgb):
     """Extract price levels and their y-positions from the right side of the image."""
-    right_side = img_rgb[:, int(0.9 * img_rgb.shape[1]):]  # Take the right 10% of the image
+    right_side = img_rgb[:, int(1 - IMAGE_RIGHT_MARGIN * img_rgb.shape[1]):]  # Take the right 10% of the image
     data = pytesseract.image_to_data(right_side, output_type=pytesseract.Output.DICT)
     price_data = []
     for i in range(len(data['text'])):
-        if data['text'][i].strip() and data['conf'][i] > 50:  # Confidence threshold
+        if data['text'][i].strip() and data['conf'][i] > CONFIDENCE_THRESHOLD:  # Confidence threshold
             try:
                 price = float(data['text'][i].replace(',', '.'))
-                y_pos = data['top'][i] + data['height'][i] // 2 + 10  # Offset y-position by 10px downward
+                y_pos = data['top'][i] + data['height'][i] // 2 + PRICE_LABEL_LINE_MARGIN  # Offset y-position by 10px downward
                 price_data.append((price, y_pos))
             except ValueError:
                 continue
@@ -27,19 +43,18 @@ def extract_price_labels(img_rgb):
 
 def extract_time_labels(img_rgb, desired_length):
     """Extract first and last time labels from the bottom 20px and populate array with desired length."""
-    bottom_region = img_rgb[int(img_rgb.shape[0] - 20):, :]  # Bottom 20px
-    custom_config = r'--psm 6 --oem 1 -c tessedit_char_whitelist=0123456789:'
-    bottom_text = pytesseract.image_to_string(bottom_region, config=custom_config).strip()
+    bottom_region = img_rgb[int(img_rgb.shape[0] - IMAGE_BOTTOM_MARGIN_PX):, :]  # Bottom 20px
+    bottom_text = pytesseract.image_to_string(bottom_region, config=TIME_LABEL_TESSERACT_CONFIG).strip()
     print(f"Raw bottom text: {bottom_text}")
     
     # Extract first 5 and last 5 characters as time labels
-    first_time_str = bottom_text[:5].strip()
-    last_time_str = bottom_text[-5:].strip()
+    first_time_str = bottom_text[:TIME_LABEL_CHAR_LENGTH].strip()
+    last_time_str = bottom_text[-TIME_LABEL_CHAR_LENGTH:].strip()
 
     print(f"First time: {first_time_str}, Last time: {last_time_str}")
     time_labels = []
     for time_str in (first_time_str, last_time_str):
-        if len(time_str) == 5 and ':' in time_str:
+        if len(time_str) == TIME_LABEL_CHAR_LENGTH and ':' in time_str:
             try:
                 hour, minute = map(int, time_str.replace(' ', ':').split(':')[:2])  # Handle potential space
                 if 0 <= hour <= 23 and 0 <= minute <= 59:
@@ -77,7 +92,7 @@ def extract_candle_array(img_rgb, price_levels, price_y_positions, draw_flag=Fal
     # Edge detection for wicks to determine full range
     gray = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)
     edges = cv2.Canny(gray, 50, 150, apertureSize=3)
-    lines = cv2.HoughLinesP(edges, 1, np.pi/180, threshold=50, minLineLength=10, maxLineGap=5)
+    lines = cv2.HoughLinesP(edges, 1, np.pi/180, threshold=50, minLineLength=5, maxLineGap=5)
     print(f"Detected {len(lines) if lines is not None else 0} wick lines.")
 
     # Calculate pixel_to_price
@@ -85,33 +100,34 @@ def extract_candle_array(img_rgb, price_levels, price_y_positions, draw_flag=Fal
     base_price = max(price_levels) + (min(price_y_positions) * pixel_to_price)
 
     candle_array = []
-    height = img_rgb.shape[0]  # Image height for y-scale correction
     for contour in contours:
         x, y, w, h = cv2.boundingRect(contour)
         if w > 20 and h > 5:  # Filter noise, ensure width > 20px
-            # Open/Close from the thick middle of the bounding rect (y increases downward, invert for price)
-            body_height = h  # Use full height of contour as body
-            middle_y = y + h // 2  # Center y-position
-            open_y = middle_y - body_height // 2  # Top of body (higher price)
-            close_y = middle_y + body_height // 2  # Bottom of body (lower price)
-
-            # High/Low enhanced with wick data (y increases downward, invert for price)
             high_y = y  # Top of bounding rect as initial high (highest price)
             low_y = y + h  # Bottom of bounding rect as initial low (lowest price)
+            open_y = high_y
+            close_y = low_y
+
+            # Adjust margins for wick data
             if lines is not None:
-                min_dist = float('inf')
-                closest_wick = None
+                closest_wick = []
                 for line in lines:
                     x1, y1, x2, y2 = line[0]
                     if abs(x2 - x1) < 5:  # Vertical line (wick)
                         mid_x = (x1 + x2) / 2
                         dist = abs(mid_x - (x + w // 2))
-                        if dist < min_dist and dist < w * 1.5:  # Match within 1.5x body width
-                            min_dist = dist
-                            closest_wick = [min(y1, y2), max(y1, y2)]
-                if closest_wick:
-                    open_y = closest_wick[0]  # Top of wick as high (highest price)
-                    close_y = closest_wick[1]  # Bottom of wick as low (lowest price)
+                        wick = [min(y1, y2), max(y1, y2)]
+                        intercept = (wick[0] <= open_y and open_y <= wick[1]) or (wick[0] <= close_y and close_y <= wick[1])
+                        if dist < 5 and intercept:
+                            wick[0] = max(wick[0], high_y)
+                            wick[1] = min(wick[1], low_y)
+                            closest_wick.append(wick)
+                if len(closest_wick) > 1:
+                    for wick in closest_wick:
+                        if wick[0] - high_y < 2 and low_y - wick[1] > 2:
+                            open_y = wick[1]
+                        if low_y - wick[1] < 2 and wick[0] - high_y > 2:
+                            close_y = wick[0]
 
             # Calculate price from y-position
             open_price = base_price - (open_y * pixel_to_price)
@@ -180,6 +196,12 @@ def main():
                     time_pos = (x - min_x) * len(candle_array) / time_range
                 else:
                     time_pos = x # Fallback to index if range is zero
+
+                # Draw wicks
+                ax.plot([time_pos, time_pos], [low_price, high_price], color='k', linewidth=1)  # Wicks
+                # ax.plot([time_pos - 0.2, time_pos + 0.2], [open_price, open_price], color='k', linewidth=2)  # Open
+                # ax.plot([time_pos - 0.2, time_pos + 0.2], [close_price, close_price], color='k', linewidth=2)  # Close
+
                 # Determine bullish/bearish based on y-coordinates (higher y = lower price due to inversion)
                 if open_price <= close_price:  # Bullish if open is higher (lower y) than close
                     color = 'g'
@@ -188,9 +210,6 @@ def main():
                     color = 'r'
                     body = plt.Rectangle((time_pos - 0.2, min(open_price, close_price)), 0.4, abs(close_price - open_price), facecolor=color)
                 ax.add_patch(body)
-                # ax.plot([time_pos, time_pos], [low_price, high_price], color='k', linewidth=1)  # Wicks
-                # ax.plot([time_pos - 0.2, time_pos + 0.2], [open_price, open_price], color='k', linewidth=2)  # Open
-                # ax.plot([time_pos - 0.2, time_pos + 0.2], [close_price, close_price], color='k', linewidth=2)  # Close
 
         ax.set_xlim(- 1, len(candle_array) + 1)
         ax.set_ylim(min(c[6] for c in candle_array), max(c[7] for c in candle_array))  # Use high_y and low_y for y-limits
@@ -201,9 +220,20 @@ def main():
         plt.grid(True)
         plt.show()
 
+    final_package = []
     for i, (x, open_y, close_y, high_y, low_y, open_price, close_price, high_price, low_price) in enumerate(candle_array):
+        final_package.append({
+            'time': time_steps[i].strftime('%H:%M'),
+            'x': x,
+            'open': open_price,
+            'close': close_price,
+            'high': high_price,
+            'low': low_price
+        })
         print(f"Candle {i + 1} at {time_steps[i].strftime('%H:%M')}: x = {x}, Open = {open_price}, Close = {close_price}, "
                 f"High = {high_price}, Low = {low_price}")
+
+    return final_package
 
 if __name__ == "__main__":
     image_path = '/Users/million/Downloads/aaa.png'  # Replace with your image path
