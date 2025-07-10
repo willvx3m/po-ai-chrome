@@ -7,34 +7,77 @@ import matplotlib.dates as mdates
 from datetime import datetime, timedelta
 
 # INPUT
-IMAGE_PATH = '/Users/million/Downloads/aaa.png'
+# IMAGE_PATH = '/Users/million/Downloads/aaa.png'
+# IMAGE_PATH = '/Volumes/WORK/Project/MegaVX/po-ai/capture/screenshot_20250710_100911-ok.png'
+# IMAGE_PATH = '/Volumes/WORK/Project/MegaVX/po-ai/capture/screenshot_20250710_100850.png'
+IMAGE_PATH = '/Volumes/WORK/Project/MegaVX/po-ai/capture/screenshot_20250710_100830-cur-price-top.png'
+# IMAGE_PATH = '/Volumes/WORK/Project/MegaVX/po-ai/capture/screenshot_20250710_100807-half-full.png'
+# IMAGE_PATH = '/Volumes/WORK/Project/MegaVX/po-ai/capture/screenshot_20250710_104532.png'
 IMAGE_WIDTH = 1920  # Width of the image
 IMAGE_HEIGHT = 1080  # Height of the image
 
 # TIME LABEL AND PRICE LABEL EXTRACTION
-IMAGE_RIGHT_MARGIN = 0.1  # To Right margin as a percentage of image width (Price Label)
-PRICE_LABEL_LINE_MARGIN = 10 # To extract price labels, line margin with which the actual price line resides
+IMAGE_RIGHT_MARGIN = 0.05  # 10% from the right
+CONFIDENCE_THRESHOLD = 30  # Minimum confidence for OCR
+PRICE_LABEL_LINE_MARGIN = 10  # Offset y-position downward
+BG_COLOR_TOLERANCE = 20  # Tolerance for background color match
 IMAGE_BOTTOM_MARGIN_PX = 20  # Bottom area px to extract time label
 
 # TESSERACT CONFIG
-CONFIDENCE_THRESHOLD = 50
 TIME_LABEL_TESSERACT_CONFIG = r'--psm 6 --oem 1 -c tessedit_char_whitelist=0123456789:'
 PRICE_LABEL_TESSERACT_CONFIG = r'--psm 6 --oem 1 -c tessedit_char_whitelist=0123456789.'
 TIME_LABEL_CHAR_LENGTH = 5
 
 def extract_price_labels(img_rgb):
-    """Extract price levels and their y-positions from the right side of the image."""
+    """Extract price levels and their y-positions from the right side of the image, filtering for pure price labels based on the most frequent factor (text color, bg color, left pos, length)."""
     right_side = img_rgb[:, int(1 - IMAGE_RIGHT_MARGIN * img_rgb.shape[1]):]  # Take the right 10% of the image
     data = pytesseract.image_to_data(right_side, output_type=pytesseract.Output.DICT)
     price_data = []
+    factor_groups = {}  # Dictionary to store (price, y_pos) lists by factor
+
     for i in range(len(data['text'])):
-        if data['text'][i].strip() and data['conf'][i] > CONFIDENCE_THRESHOLD:  # Confidence threshold
+        text = data['text'][i].strip()
+        print(f"Text: {text}, Conf: {data['conf'][i]}")
+        if text and data['conf'][i] > CONFIDENCE_THRESHOLD:  # Confidence threshold
             try:
-                price = float(data['text'][i].replace(',', '.'))
-                y_pos = data['top'][i] + data['height'][i] // 2 + PRICE_LABEL_LINE_MARGIN  # Offset y-position by 10px downward
-                price_data.append((price, y_pos))
+                # Extract bounding box coordinates
+                left = data['left'][i]
+                top = data['top'][i]
+                width = data['width'][i]
+                height = data['height'][i]
+                right = left + width
+                bottom = top + height
+
+                # Sample background color (top-left corner outside the text)
+                bg_color = img_rgb[top, left] if top > 0 and left > 0 else [0, 0, 0]  # Fallback to black
+
+                print(f"Text: {text}, Left: {left}, bg_color: {bg_color}")
+
+                # Define factor as a tuple of quantized attributes
+                factor = (
+                    tuple(int(c // BG_COLOR_TOLERANCE * BG_COLOR_TOLERANCE) for c in bg_color),  # Quantized bg color
+                    int(left // 2),  # Quantized left position (x) in 10px increments
+                    len(text)    # Label length
+                )
+
+                price = float(text.replace(',', '.'))
+                y_pos = data['top'][i] + data['height'][i] // 2 + PRICE_LABEL_LINE_MARGIN  # Offset y-position
+
+                # Add to factor group
+                if factor not in factor_groups:
+                    factor_groups[factor] = []
+                factor_groups[factor].append((price, y_pos))
             except ValueError:
                 continue
+
+    # Find the factor group with the most matches
+    if factor_groups:
+        most_frequent_factor = max(factor_groups.items(), key=lambda x: len(x[1]))[0]
+        print(f"Most frequent factor: {most_frequent_factor}, count: {len(factor_groups[most_frequent_factor])}")
+        price_data = factor_groups[most_frequent_factor]
+    else:
+        print("No valid factor groups found.")
+
     price_data.sort(key=lambda x: x[1])  # Sort by y-position
     price_levels = [p[0] for p in price_data]
     y_positions = [p[1] for p in price_data]
@@ -154,11 +197,11 @@ def extract_candle_array(img_rgb, price_levels, price_y_positions, draw_flag=Fal
 
     return candle_array
 
-def main():
+def main(image_path):
     # Load and process image
     img = cv2.imread(image_path)
     if img is None:
-        raise FileNotFoundError(f"Image file {image_path} not found or unreadable.")
+        raise FileNotFoundError(f"Image file {image_path} not found or unreadable.") 
     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
     # Extract data
@@ -236,5 +279,4 @@ def main():
     return final_package
 
 if __name__ == "__main__":
-    image_path = '/Users/million/Downloads/aaa.png'  # Replace with your image path
-    main()
+    main(IMAGE_PATH)
