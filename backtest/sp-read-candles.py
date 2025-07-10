@@ -110,8 +110,8 @@ def extract_candle_array(img_rgb, price_levels, price_y_positions, draw_flag=Fal
                             min_dist = dist
                             closest_wick = [min(y1, y2), max(y1, y2)]
                 if closest_wick:
-                    high_y = closest_wick[0]  # Top of wick as high (highest price)
-                    low_y = closest_wick[1]  # Bottom of wick as low (lowest price)
+                    open_y = closest_wick[0]  # Top of wick as high (highest price)
+                    close_y = closest_wick[1]  # Bottom of wick as low (lowest price)
 
             # Calculate price from y-position
             open_price = base_price - (open_y * pixel_to_price)
@@ -129,8 +129,8 @@ def extract_candle_array(img_rgb, price_levels, price_y_positions, draw_flag=Fal
         for x, open_y, close_y, high_y, low_y, open_price, close_price, high_price, low_price in candle_array:
             w = w if 'w' in locals() else 20  # Use contour width or approximate
             # Convert back to image coordinates for drawing (y decreases upward in display)
-            cv2.rectangle(img_rgb, (x, open_y), (x + w, close_y), (255, 0, 0), 2)  # Blue for Open/Close
             cv2.rectangle(img_rgb, (x, low_y), (x + w, high_y), (255, 255, 0), 2)  # Yellow for High/Low
+            cv2.rectangle(img_rgb, (x, open_y), (x + w, close_y), (255, 0, 255), 2)  # Blue for Open/Close
         plt.figure(figsize=(10, 5))
         plt.imshow(img_rgb)
         plt.title('Blue: Open/Close Bodies, Yellow: High/Low Full Range')
