@@ -21,7 +21,7 @@ BG_COLOR_TOLERANCE = 20  # Tolerance for background color match
 WINDOW_WIDTH = 28  # Width of the time label window in pixels
 WINDOW_HEIGHT = 20  # Height of the time label window in pixels
 SEARCH_STEP = 2    # Step size to move the window rightward in pixels
-LABEL_SPACING = IMAGE_WIDTH / 60  # Distance between consecutive time labels in pixels
+LABEL_SPACING = 25  # Distance between consecutive time labels in pixels (Mac: IMAGE_WIDTH / 60, Win: 25)
 TIME_INCREMENT = timedelta(minutes=1)  # Increment time by 1 minute
 CONFIDENCE_THRESHOLD_LABEL = 85  # Confidence threshold for label correctness
 
@@ -185,9 +185,10 @@ def extract_candle_array(img_rgb, price_levels, price_y_positions, time_steps, d
     base_price = max(price_levels) + (min(price_y_positions) * pixel_to_price)
 
     candle_array = []
+    seen_x = set()
     for contour in contours:
         x, y, w, h = cv2.boundingRect(contour)
-        if w > 20 and h > 5:  # Filter noise, ensure width > 20px
+        if w > 20 and h > 5 and x not in seen_x:  # Filter noise, ensure width > 20px
             high_y = y  # Top of bounding rect as initial high (highest price)
             low_y = y + h  # Bottom of bounding rect as initial low (lowest price)
             open_y = high_y
@@ -231,6 +232,7 @@ def extract_candle_array(img_rgb, price_levels, price_y_positions, time_steps, d
 
             # Include x-position in the candle array
             candle_array.append([x + w // 2, open_y, close_y, high_y, low_y, open_price, close_price, high_price, low_price, time_label])
+            seen_x.add(x)
 
     # Sort candle_array by x-position to ensure chronological order
     candle_array = sorted(candle_array, key=lambda c: c[0])

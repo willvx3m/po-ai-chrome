@@ -92,7 +92,7 @@ BG_COLOR_TOLERANCE = 20  # Tolerance for background color match
 WINDOW_WIDTH = 28  # Width of the time label window in pixels
 WINDOW_HEIGHT = 20  # Height of the time label window in pixels
 SEARCH_STEP = 2    # Step size to move the window rightward in pixels
-LABEL_SPACING = IMAGE_WIDTH / 60  # Distance between consecutive time labels in pixels
+LABEL_SPACING = IMAGE_WIDTH / 60  # Distance between consecutive time labels in pixels (Mac: IMAGE_WIDTH / 60, Win: 25)
 TIME_INCREMENT = timedelta(minutes=1)  # Increment time by 1 minute
 CONFIDENCE_THRESHOLD_LABEL = 85  # Confidence threshold for label correctness
 
