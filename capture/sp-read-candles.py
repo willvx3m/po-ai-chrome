@@ -21,9 +21,11 @@ BG_COLOR_TOLERANCE = 20  # Tolerance for background color match
 WINDOW_WIDTH = 28  # Width of the time label window in pixels
 WINDOW_HEIGHT = 20  # Height of the time label window in pixels
 SEARCH_STEP = 2    # Step size to move the window rightward in pixels
-LABEL_SPACING = 25  # Distance between consecutive time labels in pixels (Mac: IMAGE_WIDTH / 60, Win: 25)
+LABEL_SPACING = 25  # Distance between consecutive time labels in pixels
+ # 24.425 for eur/usd - 1H view, 4m interval on time labels
+ # 25 for aed/cny - 1H view, 4m interval on time labels
 TIME_INCREMENT = timedelta(minutes=1)  # Increment time by 1 minute
-CONFIDENCE_THRESHOLD_LABEL = 85  # Confidence threshold for label correctness
+CONFIDENCE_THRESHOLD_LABEL = 75  # Confidence threshold for label correctness
 
 # TESSERACT CONFIG
 TIME_LABEL_TESSERACT_CONFIG = r'--psm 6 --oem 1 -c tessedit_char_whitelist=0123456789:'
@@ -239,7 +241,7 @@ def extract_candle_array(img_rgb, price_levels, price_y_positions, time_steps, d
 
     if draw_flag and candle_array:
         for x, open_y, close_y, high_y, low_y, open_price, close_price, high_price, low_price, time_label in candle_array:
-            w = w if 'w' in locals() else 20  # Use contour width or approximate
+            w = 20 # w if 'w' in locals() else 20  # Use contour width or approximate
             # Convert back to image coordinates for drawing (y decreases upward in display)
             cv2.rectangle(img_rgb, (x - w // 2, low_y), (x + w // 2, high_y), (255, 255, 0), 2)  # Yellow for High/Low
             cv2.rectangle(img_rgb, (x - w // 2, open_y), (x + w // 2, close_y), (255, 0, 255), 2)  # Blue for Open/Close
@@ -262,6 +264,10 @@ def main(image_path, draw_overlay, draw_chart):
     if not price_levels:
         print("No price levels detected. Exiting.")
         return
+    
+    if len(price_levels) <= 1:
+        print("Only one price level detected. Unable to determine price range.")
+        return
 
     time_steps = extract_time_labels(img_rgb)
     if not time_steps:
@@ -271,6 +277,10 @@ def main(image_path, draw_overlay, draw_chart):
     candle_array = extract_candle_array(img_rgb, price_levels, y_positions, time_steps, draw_flag=draw_overlay)
     if not candle_array:
         print("No candle data detected. Exiting.")
+        return
+
+    if len(candle_array) <= 10:
+        print("Less than 10 candles detected. Likely a failed attempt to read the chart.")
         return
 
     # Optional: Draw final chart directly from candle_array
