@@ -47,6 +47,8 @@ Check in "Programs and Features" or reinstall if issues arise with OpenCV.
 3. Set the chart range to 1H
 4. Run the following javscript in console:
 ```javascript
+document.querySelector('div.mfp-bg')?.remove(),
+document.querySelector('div.mfp-wrap')?.remove(),
 document.querySelector('div.zoom-controls')?.remove(),
 document.querySelector('div.scroll-to-end')?.remove(),
 document.querySelector('div.deposit-btn-wrap div.h-btn__text').innerText = document.querySelector('span.current-symbol')?.innerText,
@@ -62,9 +64,9 @@ In Mac, run the following command:
 python sp-capture-screen.py --left 87 --top 210 --width 1580 --height 820
 ```
 
-In Mac, run the following command:
+In Win, run the following command:
 ```shell
-python sp-capture-screen.py --left 87 --top 210 --width 1580 --height 820
+python sp-capture-screen.py --left 87 --top 210 --width 1580 --height 830
 ```
 
 ## READ CANDLES
