@@ -44,7 +44,7 @@ Check in "Programs and Features" or reinstall if issues arise with OpenCV.
 
 1. Open PO platform and maximize it
 2. Go to settings and remove any unncessary ONs including NO BACKGROUND
-3. Set the chart range to 1H (time label on every 4m)
+3. Set the chart range to 1H (time label on every 2m)
 4. Run the following javscript in console:
 ```javascript
 document.querySelector('div.mfp-bg')?.remove(),
