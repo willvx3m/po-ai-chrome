@@ -9,17 +9,20 @@ import json
 import argparse
 import shutil
 from pathlib import Path
+import os
+import time
 
 IMAGE_WIDTH = 1580  # Width of the image
 IMAGE_HEIGHT = 820  # Height of the image
 
 # TIME LABEL EXTRACTION CONSTANTS
-WINDOW_WIDTH = 28  # Width of the time label window in pixels
+WINDOW_WIDTH = 32  # Width of the time label window in pixels
 WINDOW_HEIGHT = 20  # Height of the time label window in pixels
 SEARCH_STEP = 2    # Step size to move the window rightward in pixels
-LABEL_SPACING = 25  # Distance between consecutive time labels in pixels
+LABEL_SPACING = 26.4  # Distance between consecutive time labels in pixels
 # 25 for aed/cny - 1H view, 4m interval on time labels
 # 24.425 for eur/usd - 1H view, 4m interval on time labels
+# 26.4 (1056/40) - 1H view (normal)
 TIME_INCREMENT = timedelta(minutes=1)  # Increment time by 1 minute
 CONFIDENCE_THRESHOLD_LABEL = 75  # Confidence threshold for label correctness
 TIME_LABEL_CHAR_LENGTH = 5
@@ -33,7 +36,6 @@ DATE_LABEL_CHAR_LENGTH = 10
 
 # TESSERACT CONFIG
 TIME_LABEL_TESSERACT_CONFIG = r'--psm 6 --oem 1 -c tessedit_char_whitelist=0123456789:'
-PRICE_LABEL_TESSERACT_CONFIG = r'--psm 6 --oem 1 -c tessedit_char_whitelist=0123456789.'
 
 def extract_date(img_rgb):
     """Extract date from the bottom of the image by searching for DD.MM.YYYY HH:MM"""
@@ -145,8 +147,8 @@ def extract_time_labels(img_rgb):
                 current_time = start_full + i * TIME_INCREMENT
                 time_labels.append([int(x_pos + WINDOW_WIDTH // 2), current_time.time()])
 
-    if time_labels:
-        print(f"Extracted time labels: {[[t[0], t[1].strftime('%H:%M')] for t in time_labels]}")
+    # if time_labels:
+    #     print(f"Extracted time labels: {[[t[0], t[1].strftime('%H:%M')] for t in time_labels]}")
 
     return time_labels
     
@@ -166,39 +168,110 @@ def copy_file(source_path, destination_path):
     except Exception as e:
         print(f"Error: {e}")
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Read candles from a screenshot.')
-    parser.add_argument('--path', type=str, help='Path to the image file')
-    parser.add_argument('--draw-overlay', type=bool, default=False, help='Draw overlay on the image')
-    parser.add_argument('--draw-chart', type=bool, default=False, help='Draw chart')
-    parser.add_argument('--save-json', type=bool, default=True, help='Save to json')
-    args = parser.parse_args()
+def move_file(source_path, destination_path):
+    try:
+        # Convert to Path objects to handle Windows paths
+        src = Path(source_path)
+        dst = Path(destination_path)
+        
+        # Move the file
+        shutil.move(src, dst)
+        print(f"Moved {src} to {dst}")
+    except FileNotFoundError:
+        print(f"Error: Source file {src} not found")
+    except PermissionError:
+        print(f"Error: Permission denied for {src} or {dst}")
+    except Exception as e:
+        print(f"Error: {e}")
 
-    if not args.path:
-        print("No image path provided. Exiting.")
-        exit()
-
-    # Load and process image
-    img = cv2.imread(args.path)
+def process_file(file_path, processed_dir, destination_dir):
+    print(f"Processing file: {file_path}")
+    img = cv2.imread(file_path)
     if img is None:
-        raise FileNotFoundError(f"Image file {args.path} not found or unreadable.") 
+        print(f"Image file {file_path} not found or unreadable.") 
+        return
     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
     time_steps = extract_time_labels(img_rgb)
-    print(time_steps)
+    # print(time_steps)
 
     date = extract_date(img_rgb)
-    print(date)
 
     if date is None:
-        date = [13, 7, 2025] # for aed/cny
+        # date = [13, 7, 2025] # for aed/cny only, GET THIS FROM THE FILE NAME
+        date_part = file_path.split('/')[-1].split('_')[0]
+        if len(date_part) == 8:
+            date = [int(date_part[6:8]), int(date_part[4:6]), int(date_part[0:4])]
+        else:
+            print("File does not have valid date format.")
+            return
 
-    if time_steps is None or date is None:
+    print(date)
+
+    if time_steps is None or len(time_steps) == 0 or date is None:
         print("No time steps or date found.")
-        exit()
+        return
 
     first_time_step = time_steps[0]
     last_time_step = time_steps[-1]
-    datarange = f"{date[2]:4d}.{date[1]:02d}.{date[0]:02d}-{first_time_step[1].strftime('%H:%M')}-{last_time_step[1].strftime('%H:%M')}"
+    datarange = f"{date[2]:4d}.{date[1]:02d}.{date[0]:02d}-{first_time_step[1].strftime('%H.%M')}-{last_time_step[1].strftime('%H.%M')}"
     print(f"Data range: {datarange}")
 
-    copy_file(args.path, f"screenshots-aedcny-final/{datarange}.png")
+    if destination_dir:
+        copy_file(file_path, f"{destination_dir}/{datarange}.png")
+        time.sleep(3)
+    if processed_dir:
+        filename = file_path.split('/')[-1]
+        move_file(file_path, f"{processed_dir}/{filename}")
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(description='Read candles from a screenshot.')
+    parser.add_argument('--source-dir', type=str, help='Source directory')
+    parser.add_argument('--processed-dir', type=str, help='Processed directory')
+    parser.add_argument('--destination-dir', type=str, help='Destination directory')
+    parser.add_argument('--path', type=str, help='Path to the image file')
+    args = parser.parse_args()
+
+    if not args.path and not args.source_dir:
+        print("No image path or source directory provided. Exiting.")
+        exit()
+
+    # dynamic LABEL_SPACING
+    # if (args.source_dir is not None and '1h' in args.source_dir) or (args.path is not None and '1h' in args.path):
+    #     LABEL_SPACING = 26.4
+    # elif (args.source_dir is not None and 'aedcny' in args.source_dir) or (args.path is not None and 'aedcny' in args.path):
+    #     LABEL_SPACING = 25
+    # else:
+    #     LABEL_SPACING = 24.425
+
+    # print(f"LABEL_SPACING: {LABEL_SPACING}")
+
+    all_files = []
+
+    if args.source_dir:
+        for file in os.listdir(args.source_dir):
+            if file.endswith('.png'):
+                all_files.append(os.path.join(args.source_dir, file))
+
+    if args.path:
+        all_files.append(args.path)
+
+    if not all_files:
+        print("No files found in source directory. Exiting.")
+        exit()
+
+    for file_path in all_files:
+        process_file(file_path, args.processed_dir, args.destination_dir)
+
+
+# Running command:
+# python sp-read-daterange.py --source-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-aedcny --processed-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-aedcny-processed --destination-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-aedcny-final
+
+# python sp-read-daterange.py --source-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-eurusd/1 --processed-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-eurusd/processed --destination-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-eurusd/final
+# python sp-read-daterange.py --source-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-eurusd/2 --processed-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-eurusd/processed --destination-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-eurusd/final
+# python sp-read-daterange.py --source-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-eurusd/3 --processed-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-eurusd/processed --destination-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-eurusd/final
+
+# python sp-read-daterange.py --source-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-chfjpy/1 --processed-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-chfjpy/processed --destination-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-chfjpy/final
+# python sp-read-daterange.py --source-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-chfjpy/2 --processed-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-chfjpy/processed --destination-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-chfjpy/final
+# python sp-read-daterange.py --source-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-chfjpy/3 --processed-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-chfjpy/processed --destination-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-chfjpy/final

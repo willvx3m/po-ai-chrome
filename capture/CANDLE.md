@@ -44,7 +44,7 @@ Check in "Programs and Features" or reinstall if issues arise with OpenCV.
 
 1. Open PO platform and maximize it
 2. Go to settings and remove any unncessary ONs including NO BACKGROUND
-3. Set the chart range to 1H
+3. Set the chart range to 1H (time label on every 4m)
 4. Run the following javscript in console:
 ```javascript
 document.querySelector('div.mfp-bg')?.remove(),
@@ -55,6 +55,7 @@ document.querySelector('div.deposit-btn-wrap div.h-btn__text').innerText = docum
 document.querySelector('div.top-left-block')?.remove(),
 document.querySelector('div.control-wrap')?.remove()
 ```
+5. Let auto-jump stop.
 
 ## CAPTURE SCREENSHOTS
 **Make sure to place the browser in the correct place so that the command correctly captures "necessary" part of screen.
@@ -73,7 +74,23 @@ python sp-capture-screen.py --left 87 --top 210 --width 1580 --height 830
 GIVE VALID IMAGE PATH FOR THE DATE/TIME RANGE. Run the following command:
 ```shell
 python sp-read-candles.py --path {IMG_PATH} --draw-overlay True --draw-chart True --save-json True
+python sp-read-candles.py --source-dir {SOURCE_DIR} --processed-dir {PROCESSED_DIR} --destination-dir {DEST_DIR}
 ```
+
+## RE-LABEL: READ DATE AND MOVE/COPY THE FILE WITH DATETIME
+Process given source file(or files in a direction) to get datetime range and copy them with given datetime:
+```shell
+python sp-read-daterange.py --source-dir {SOURCE_DIR} --processed-dir {PROCESSED_DIR} --destination-dir {DEST_DIR}
+python sp-read-daterange.py --path {SOURCE_FILE} --processed-dir {PROCESSED_DIR} --destination-dir {DEST_DIR}
+```
+
+## NEXT STEPS TO COMPLETE OHLCV
+1. Re-label image, check accuracy.
+2. Add missing/failed images, re-do re-labelling.
+3. Read candle: image -> json
+4. Fix deviated ones: shift entire json to some time.
+5. Merge & re-fill missing ones.
+6. [Optional] Intelligent refine regarding open/close, high/low based on sequences.
 
 ### Constants
 There are sevearl constants that define the performance of candle read. Make sure to adjust them unless the reading is not successful.
@@ -92,7 +109,10 @@ BG_COLOR_TOLERANCE = 20  # Tolerance for background color match
 WINDOW_WIDTH = 28  # Width of the time label window in pixels
 WINDOW_HEIGHT = 20  # Height of the time label window in pixels
 SEARCH_STEP = 2    # Step size to move the window rightward in pixels
-LABEL_SPACING = IMAGE_WIDTH / 60  # Distance between consecutive time labels in pixels (Mac: IMAGE_WIDTH / 60, Win: 25)
+LABEL_SPACING = 26.4  # Distance between consecutive time labels in pixels
+ # 24.425 for eur/usd - 1H view, 4m interval on time labels
+ # 25 for aed/cny - 1H view, 4m interval on time labels
+ # 26.4 (1056/40) - 1H view (normal)
 TIME_INCREMENT = timedelta(minutes=1)  # Increment time by 1 minute
 CONFIDENCE_THRESHOLD_LABEL = 85  # Confidence threshold for label correctness
 

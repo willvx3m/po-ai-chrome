@@ -7,6 +7,9 @@ import matplotlib.dates as mdates
 from datetime import datetime, timedelta
 import json
 import argparse
+import os
+import shutil
+from pathlib import Path
 
 IMAGE_WIDTH = 1580  # Width of the image
 IMAGE_HEIGHT = 820  # Height of the image
@@ -18,12 +21,13 @@ PRICE_LABEL_LINE_MARGIN = 10  # Offset y-position downward
 BG_COLOR_TOLERANCE = 20  # Tolerance for background color match
 
 # TIME LABEL EXTRACTION CONSTANTS
-WINDOW_WIDTH = 28  # Width of the time label window in pixels
+WINDOW_WIDTH = 32  # Width of the time label window in pixels
 WINDOW_HEIGHT = 20  # Height of the time label window in pixels
 SEARCH_STEP = 2    # Step size to move the window rightward in pixels
-LABEL_SPACING = 25  # Distance between consecutive time labels in pixels
- # 24.425 for eur/usd - 1H view, 4m interval on time labels
- # 25 for aed/cny - 1H view, 4m interval on time labels
+LABEL_SPACING = 26.4  # Distance between consecutive time labels in pixels
+ # 24.425 for eur/usd - 1H view (adjusted), 4m interval on time labels
+ # 25 for aed/cny - 1H view (adjusted), 4m interval on time labels
+ # 26.4 (1056/40) - 1H view (normal)
 TIME_INCREMENT = timedelta(minutes=1)  # Increment time by 1 minute
 CONFIDENCE_THRESHOLD_LABEL = 75  # Confidence threshold for label correctness
 
@@ -342,20 +346,86 @@ def main(image_path, draw_overlay, draw_chart):
 
     return final_package
 
+def copy_file(source_path, destination_path):
+    try:
+        # Convert to Path objects to handle Windows paths
+        src = Path(source_path)
+        dst = Path(destination_path)
+        
+        # Copy the file
+        shutil.copy(src, dst)
+        print(f"Copied {src} to {dst}")
+    except FileNotFoundError:
+        print(f"Error: Source file {src} not found")
+    except PermissionError:
+        print(f"Error: Permission denied for {src} or {dst}")
+    except Exception as e:
+        print(f"Error: {e}")
+
+def move_file(source_path, destination_path):
+    try:
+        # Convert to Path objects to handle Windows paths
+        src = Path(source_path)
+        dst = Path(destination_path)
+        
+        # Move the file
+        shutil.move(src, dst)
+        print(f"Moved {src} to {dst}")
+    except FileNotFoundError:
+        print(f"Error: Source file {src} not found")
+    except PermissionError:
+        print(f"Error: Permission denied for {src} or {dst}")
+    except Exception as e:
+        print(f"Error: {e}")
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Read candles from a screenshot.')
     parser.add_argument('--path', type=str, help='Path to the image file')
+    parser.add_argument('--source-dir', type=str, help='Source directory')
+    parser.add_argument('--processed-dir', type=str, help='Processed directory')
+    parser.add_argument('--destination-dir', type=str, help='Destination directory')
     parser.add_argument('--draw-overlay', type=bool, default=False, help='Draw overlay on the image')
     parser.add_argument('--draw-chart', type=bool, default=False, help='Draw chart')
     parser.add_argument('--save-json', type=bool, default=True, help='Save to json')
     args = parser.parse_args()
 
-    if not args.path:
-        print("No image path provided. Exiting.")
+    if not args.path and not args.source_dir:
+        print("No image path or source directory provided. Exiting.")
         exit()
 
-    result = main(args.path, args.draw_overlay, args.draw_chart)
-    if args.save_json:
-        filename = args.path.split('/')[-1].split('.')[0]
-        with open(f'json/{filename}.json', 'w') as f:
-            json.dump(result, f)
+    # dynamic LABEL_SPACING
+    # if (args.source_dir is not None and '1h' in args.source_dir) or (args.path is not None and '1h' in args.path):
+    #     LABEL_SPACING = 26.4
+    # elif (args.source_dir is not None and 'aedcny' in args.source_dir) or (args.path is not None and 'aedcny' in args.path):
+    #     LABEL_SPACING = 25
+    # else:
+    #     LABEL_SPACING = 24.425
+
+    # print(f"LABEL_SPACING: {LABEL_SPACING}")
+
+    all_files = []
+
+    if args.source_dir:
+        for file in os.listdir(args.source_dir):
+            if file.endswith('.png'):
+                all_files.append(os.path.join(args.source_dir, file))
+
+    if args.path:
+        all_files.append(args.path)
+
+    if not all_files:
+        print("No files found in source directory. Exiting.")
+        exit()
+
+    for file_path in all_files:
+        result = main(file_path, args.draw_overlay, args.draw_chart)
+        if result and args.save_json and args.destination_dir and args.processed_dir:
+            filename = file_path.split('/')[-1]
+            with open(f'{args.destination_dir}/{filename}.json', 'w') as f:
+                json.dump(result, f)
+            move_file(file_path, f"{args.processed_dir}/{filename}.png")
+
+
+# python sp-read-candles.py --source-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-eurusd/final --processed-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-eurusd/complete --destination-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-eurusd/json
+# python sp-read-candles.py --source-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-aedcny/final --processed-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-aedcny/complete --destination-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-aedcny/json
+# python sp-read-candles.py --source-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-chfjpy/final --processed-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-chfjpy/complete --destination-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-chfjpy/json
