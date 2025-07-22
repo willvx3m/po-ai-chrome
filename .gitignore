@@ -11,3 +11,6 @@ videos
 
 backtest/balance_track*
 backtest/price_track*
+
+.venv
+venv
