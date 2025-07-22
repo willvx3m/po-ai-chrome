@@ -8,7 +8,7 @@ import json
 import datetime
 from typing import List, Tuple, Dict, Any
 from collections import defaultdict
-
+import argparse
 
 def parse_datetime(datetime_str: str) -> datetime.datetime:
     """Parse datetime string in format 'YYYY-MM-DD HH:MM'"""
@@ -81,10 +81,15 @@ def group_missing_ranges_by_date(missing_ranges: List[Tuple[str, str]]) -> Dict[
 
 def main():
     """Main function to process the merged.json file."""
+    # add arg input file
+    parser = argparse.ArgumentParser(description='Check for missing datetime points in merged.json file.')
+    parser.add_argument('--path', type=str, default='merged.json', help='Path to the merged.json file')
+    args = parser.parse_args()
+    
     try:
         # Load the JSON file
-        print("Loading merged.json file...")
-        with open('merged.json', 'r') as f:
+        print(f"Loading {args.path} file...")
+        with open(args.path, 'r') as f:
             data = json.load(f)
         
         print(f"Loaded {len(data)} candles")
