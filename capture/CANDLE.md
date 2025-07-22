@@ -121,15 +121,17 @@ python sp-merge.py --source-dir {SOURCE_JSON_DIR}
 python sp-check-missing.py
 ```
 
-## NEXT STEPS TO COMPLETE OHLCV
-1. Re-label image, check accuracy.
-2. Add missing/failed images, re-do re-labelling.
-3. Read candle: image -> json
-4. Fix deviated ones: shift entire json to some time.
-5. Merge & re-fill missing ones.
-6. [Optional] Intelligent refine regarding open/close, high/low based on sequences.
+### 6. COMPLETE MISSING ONES (ONLY SINGLE POINTS, auto-populate using nearby ones)
+```shell
+python sp-complete-json.py --input {JSON_PATH}
+```
 
-### Constants
+### 7. CHECK CANDLE CHART
+```shell
+python sp-draw-candle-chart.py --path {JSON_PATH}
+```
+
+### Misc: Constants
 There are sevearl constants that define the performance of candle read. Make sure to adjust them unless the reading is not successful.
 
 ```
@@ -158,21 +160,3 @@ TIME_LABEL_TESSERACT_CONFIG = r'--psm 6 --oem 1 -c tessedit_char_whitelist=01234
 PRICE_LABEL_TESSERACT_CONFIG = r'--psm 6 --oem 1 -c tessedit_char_whitelist=0123456789.'
 TIME_LABEL_CHAR_LENGTH = 5
 ```
-
-## NEXT STEPS
-
-### PO Auto Scroller
-This is a helper (Chrome extension) that scrolls the price chart automatically so that screen capture can run automatically.
-
-**Key points**
-- remove any overlapping elements (eg. like claiming prize)
-- avoid skipping any timeframe
-- **disable auto-jump to current time**
-
-### Automatic Candle Reader
-Let the candle reader work by himself with new screenshots.
-
-### Merge Json
-- read json files and merge them
-- add-up missing price values for missing time frames
-- refine data (no clear direction yet)
