@@ -162,11 +162,11 @@ def copy_file(source_path, destination_path):
         shutil.copy(src, dst)
         print(f"Copied {src} to {dst}")
     except FileNotFoundError:
-        print(f"Error: Source file {src} not found")
+        print(f"Copy Error: Source file {src} not found")
     except PermissionError:
-        print(f"Error: Permission denied for {src} or {dst}")
+        print(f"Copy Error: Permission denied for {src} or {dst}")
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Copy Error: {e}")
 
 def move_file(source_path, destination_path):
     try:
@@ -178,11 +178,11 @@ def move_file(source_path, destination_path):
         shutil.move(src, dst)
         print(f"Moved {src} to {dst}")
     except FileNotFoundError:
-        print(f"Error: Source file {src} not found")
+        print(f"Move Error: Source file {src} not found")
     except PermissionError:
-        print(f"Error: Permission denied for {src} or {dst}")
+        print(f"Move Error: Permission denied for {src} or {dst}")
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Move Error: {e}")
 
 def process_file(file_path, processed_dir, destination_dir):
     print(f"Processing file: {file_path}")
@@ -264,14 +264,5 @@ if __name__ == "__main__":
     for file_path in all_files:
         process_file(file_path, args.processed_dir, args.destination_dir)
 
-
-# Running command:
-# python sp-read-daterange.py --source-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-aedcny --processed-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-aedcny-processed --destination-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-aedcny-final
-
-# python sp-read-daterange.py --source-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-eurusd/1 --processed-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-eurusd/processed --destination-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-eurusd/final
-# python sp-read-daterange.py --source-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-eurusd/2 --processed-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-eurusd/processed --destination-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-eurusd/final
-# python sp-read-daterange.py --source-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-eurusd/3 --processed-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-eurusd/processed --destination-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-eurusd/final
-
-# python sp-read-daterange.py --source-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-chfjpy/1 --processed-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-chfjpy/processed --destination-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-chfjpy/final
-# python sp-read-daterange.py --source-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-chfjpy/2 --processed-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-chfjpy/processed --destination-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-chfjpy/final
-# python sp-read-daterange.py --source-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-chfjpy/3 --processed-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-chfjpy/processed --destination-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-chfjpy/final
+# python sp-read-daterange.py --source-dir {SOURCE_DIR} --processed-dir {PROCESSED_DIR} --destination-dir {DESTINATION_DIR}
+# python sp-read-daterange.py --path {IMG_PATH} --processed-dir {PROCESSED_DIR} --destination-dir {DESTINATION_DIR}

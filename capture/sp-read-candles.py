@@ -16,7 +16,7 @@ IMAGE_HEIGHT = 820  # Height of the image
 
 # PRICE LABEL EXTRACTION CONSTANTS
 IMAGE_RIGHT_MARGIN = 0.05  # 10% from the right
-CONFIDENCE_THRESHOLD = 30  # Minimum confidence for OCR
+CONFIDENCE_THRESHOLD = 0  # Minimum confidence for OCR
 PRICE_LABEL_LINE_MARGIN = 10  # Offset y-position downward
 BG_COLOR_TOLERANCE = 20  # Tolerance for background color match
 
@@ -37,6 +37,20 @@ PRICE_LABEL_TESSERACT_CONFIG = r'--psm 6 --oem 1 -c tessedit_char_whitelist=0123
 TIME_LABEL_CHAR_LENGTH = 5
 
 def extract_price_labels(img_rgb):
+    previous_price = None
+    top_side = img_rgb[0:30, img_rgb.shape[1] - 50:]  # Take the right 10% of the image
+    data = pytesseract.image_to_string(top_side, config=PRICE_LABEL_TESSERACT_CONFIG)
+    top_price = None
+    top_price_text_len = None
+    if data:
+        try:
+            top_price = float(data.strip().replace(' ', '').strip('.'))
+            top_price_text_len = len(data.strip().replace(' ', '').strip('.'))
+            previous_price = top_price
+        except ValueError:
+            pass
+    print(f"Top price: {top_price}, Text length: {top_price_text_len}")
+    
     """Extract price levels and their y-positions from the right side of the image, filtering for pure price labels based on the most frequent factor (text color, bg color, left pos, length)."""
     right_side = img_rgb[:, int(1 - IMAGE_RIGHT_MARGIN * img_rgb.shape[1]):]  # Take the right 10% of the image
     data = pytesseract.image_to_data(right_side, output_type=pytesseract.Output.DICT)
@@ -45,35 +59,52 @@ def extract_price_labels(img_rgb):
 
     for i in range(len(data['text'])):
         text = data['text'][i].strip()
-        if text and data['conf'][i] > CONFIDENCE_THRESHOLD:  # Confidence threshold
-            try:
-                # Extract bounding box coordinates
-                left = data['left'][i]
-                top = data['top'][i]
-                width = data['width'][i]
-                height = data['height'][i]
-                right = left + width
-                bottom = top + height
+        if not text:
+            continue
 
-                # Sample background color (top-left corner outside the text)
-                bg_color = img_rgb[top, left] if top > 0 and left > 0 else [0, 0, 0]  # Fallback to black
+        # Extract bounding box coordinates
+        left = data['left'][i]
+        top = data['top'][i]
+        width = data['width'][i]
+        height = data['height'][i]
+        right = left + width
+        bottom = top + height
 
-                # Define factor as a tuple of quantized attributes
-                factor = (
-                    tuple(int(c // BG_COLOR_TOLERANCE * BG_COLOR_TOLERANCE) for c in bg_color),  # Quantized bg color
-                    int(left // 2),  # Quantized left position (x) in 10px increments
-                    len(text)    # Label length
-                )
+        # Sample background color (top-left corner outside the text)
+        bg_color = img_rgb[top, (left+right)//2] if top > 0 and left > 0 else [0, 0, 0]  # Fallback to black
+        print(f"Text: {text}, Confidence: {data['conf'][i]}, Left: {data['left'][i]}, Top: {data['top'][i]}, Width: {data['width'][i]}, Height: {data['height'][i]}, Bg Color: {bg_color}")
 
-                price = float(text.replace(',', '.'))
-                y_pos = data['top'][i] + data['height'][i] // 2 + PRICE_LABEL_LINE_MARGIN  # Offset y-position
+        try:
+            # Extract price
+            price = float(text.replace(',', '.'))
+            y_pos = top + height // 2 + PRICE_LABEL_LINE_MARGIN  # Offset y-position
 
-                # Add to factor group
-                if factor not in factor_groups:
-                    factor_groups[factor] = []
-                factor_groups[factor].append((price, y_pos))
-            except ValueError:
+            if previous_price is not None and price > previous_price:
                 continue
+
+            # Define factor as a tuple of quantized attributes
+            factor = (
+                tuple(int(c // BG_COLOR_TOLERANCE * BG_COLOR_TOLERANCE) for c in bg_color),  # Quantized bg color
+                int(left // 2),  # Quantized left position (x) in 10px increments
+                len(text)    # Label length
+            )
+
+            if top_price is not None and top_price_text_len is not None:
+                if len(text) == top_price_text_len and left >= 28 and left <= 32:
+                    print(f"Valid price label found: {text}")
+
+                    # Add to factor group
+                    if factor not in factor_groups:
+                        factor_groups[factor] = []
+                    factor_groups[factor].append((price, y_pos))
+
+            elif data['conf'][i] > CONFIDENCE_THRESHOLD:  # Confidence threshold
+                    # Add to factor group
+                    if factor not in factor_groups:
+                        factor_groups[factor] = []
+                    factor_groups[factor].append((price, y_pos))
+        except ValueError:
+            continue
 
     # Find the factor group with the most matches
     if factor_groups:
@@ -82,6 +113,9 @@ def extract_price_labels(img_rgb):
         price_data = factor_groups[most_frequent_factor]
     else:
         print("No valid factor groups found.")
+    
+    if top_price is not None and top_price_text_len is not None:
+        price_data.append((top_price, 0))
 
     price_data.sort(key=lambda x: x[1])  # Sort by y-position
     price_levels = [p[0] for p in price_data]
@@ -187,8 +221,8 @@ def extract_candle_array(img_rgb, price_levels, price_y_positions, time_steps, d
     print(f"Detected {len(lines) if lines is not None else 0} wick lines.")
 
     # Calculate pixel_to_price
-    pixel_to_price = (max(price_levels) - min(price_levels)) / (max(price_y_positions) - min(price_y_positions))
-    base_price = max(price_levels) + (min(price_y_positions) * pixel_to_price)
+    pixel_to_price = (price_levels[0] - price_levels[-1]) / (price_y_positions[-1] - price_y_positions[0])
+    base_price = price_levels[0] + (price_y_positions[0] * pixel_to_price)
 
     candle_array = []
     seen_x = set()
@@ -263,7 +297,11 @@ def main(image_path, draw_overlay, draw_chart):
         raise FileNotFoundError(f"Image file {image_path} not found or unreadable.") 
     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-    # Extract data
+    # Manaul price data
+    # price_levels = [1.08414, 1.08100]
+    # y_positions = [0, 768]
+
+    # Extract price data
     price_levels, y_positions = extract_price_labels(img_rgb)
     if not price_levels:
         print("No price levels detected. Exiting.")
@@ -288,8 +326,8 @@ def main(image_path, draw_overlay, draw_chart):
         return
 
     # Optional: Draw final chart directly from candle_array
-    if draw_chart and candle_array:
-        fig, ax = plt.subplots(figsize=(10, 6))
+    if candle_array:
+        fig, ax = plt.subplots(figsize=(15, 10), label=image_path.split('/')[-1])
         ax.xaxis_date()
         ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
         x_positions = [c[0] for c in candle_array]
@@ -329,7 +367,12 @@ def main(image_path, draw_overlay, draw_chart):
         ax.set_ylabel('Price')
         plt.xticks([t for t in range(len(candle_array))], [c[9].strftime('%H:%M') for c in candle_array], rotation=45)
         plt.grid(True)
-        plt.show()
+        if draw_chart:
+            plt.show()
+        if args.destination_dir:
+            filename = image_path.split('/')[-1].replace('.png', '')
+            plt.savefig(f"{args.destination_dir}/{filename}-plot.png")
+        plt.close()
 
     final_package = []
     for i, (x, open_y, close_y, high_y, low_y, open_price, close_price, high_price, low_price, time_label) in enumerate(candle_array):
@@ -393,16 +436,6 @@ if __name__ == "__main__":
         print("No image path or source directory provided. Exiting.")
         exit()
 
-    # dynamic LABEL_SPACING
-    # if (args.source_dir is not None and '1h' in args.source_dir) or (args.path is not None and '1h' in args.path):
-    #     LABEL_SPACING = 26.4
-    # elif (args.source_dir is not None and 'aedcny' in args.source_dir) or (args.path is not None and 'aedcny' in args.path):
-    #     LABEL_SPACING = 25
-    # else:
-    #     LABEL_SPACING = 24.425
-
-    # print(f"LABEL_SPACING: {LABEL_SPACING}")
-
     all_files = []
 
     if args.source_dir:
@@ -419,13 +452,14 @@ if __name__ == "__main__":
 
     for file_path in all_files:
         result = main(file_path, args.draw_overlay, args.draw_chart)
-        if result and args.save_json and args.destination_dir and args.processed_dir:
-            filename = file_path.split('/')[-1]
+        if result and args.save_json and args.destination_dir:
+            filename = file_path.split('/')[-1].replace('.png', '')
             with open(f'{args.destination_dir}/{filename}.json', 'w') as f:
                 json.dump(result, f)
+
+        if args.processed_dir:
+            filename = file_path.split('/')[-1].replace('.png', '')
             move_file(file_path, f"{args.processed_dir}/{filename}.png")
 
-
-# python sp-read-candles.py --source-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-eurusd/final --processed-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-eurusd/complete --destination-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-eurusd/json
-# python sp-read-candles.py --source-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-aedcny/final --processed-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-aedcny/complete --destination-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-aedcny/json
-# python sp-read-candles.py --source-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-chfjpy/final --processed-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-chfjpy/complete --destination-dir /Volumes/WORK/Project/MegaVX/po-ai/capture/screenshots-chfjpy/json
+# python sp-read-candles.py --source-dir {SOURCE_DIR} --processed-dir {PROCESSED_DIR} --destination-dir {DESTINATION_DIR}
+# python sp-read-candles.py --path {IMG_PATH} --processed-dir {PROCESSED_DIR} --destination-dir {DESTINATION_DIR}

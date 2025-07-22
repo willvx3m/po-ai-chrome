@@ -70,18 +70,55 @@ In Win, run the following command:
 python sp-capture-screen.py --left 87 --top 210 --width 1580 --height 830
 ```
 
-## READ CANDLES
-GIVE VALID IMAGE PATH FOR THE DATE/TIME RANGE. Run the following command:
+## STEPS TO GENERATE JSON FROM SCREENSHOTS
 ```shell
-python sp-read-candles.py --path {IMG_PATH} --draw-overlay True --draw-chart True --save-json True
-python sp-read-candles.py --source-dir {SOURCE_DIR} --processed-dir {PROCESSED_DIR} --destination-dir {DEST_DIR}
+cd {SCRIPT_PATH}
 ```
 
-## RE-LABEL: READ DATE AND MOVE/COPY THE FILE WITH DATETIME
-Process given source file(or files in a direction) to get datetime range and copy them with given datetime:
+### 1. READ DATERANGE (RE-SAVE IMAGES WITH DATERANGE AS FILENAME)
 ```shell
-python sp-read-daterange.py --source-dir {SOURCE_DIR} --processed-dir {PROCESSED_DIR} --destination-dir {DEST_DIR}
-python sp-read-daterange.py --path {SOURCE_FILE} --processed-dir {PROCESSED_DIR} --destination-dir {DEST_DIR}
+python sp-read-daterange.py --path {IMG_PATH} --processed-dir {PROCESSED_DIR} --destination-dir {DESTINATION_DIR}
+python sp-read-daterange.py --source-dir {SOURCE_DIR} --processed-dir {PROCESSED_DIR} --destination-dir {DESTINATION_DIR}
+```
+### 2. READ CANDLE DATA (OPTION: SAVE JSON & PLOT IMAGE)
+```shell
+python sp-read-candles.py --path {IMG_PATH} --draw-overlay True --draw-chart True
+python sp-read-candles.py --path {IMG_PATH} --processed-dir {PROCESSED_DIR} --destination-dir {DESTINATION_DIR}
+python sp-read-candles.py --source-dir {SOURCE_DIR} --processed-dir {PROCESSED_DIR} --destination-dir {DESTINATION_DIR}
+```
+
+### 3. MANUAL CHECK AND ADJUST
+
+1. Decide time differences, date correctness
+2. Move incorrect files aside
+3. (Optional) Handle wrong files (merge with leftover in final directory)
+```shell
+cd {PATH}/json
+mkdir wrong
+mv *_wrong.json ./wrong/
+mkdir nodate
+mv *_nodate*.json ./nodate/
+mkdir update
+mv *_*.json ./update/
+mkdir updated
+
+python sp-handle-wrong.py --source-dir {SOURCE_DIR} --image-dir {IMG_DIR}
+```
+4. Check every single file and add adjustment label to the file name.
+5. Fix incorrect jsons (adjustable by time difference)
+```shell
+python sp-filter-json.py --source-dir {SOURCE_JSON_DIR}--destination-dir {DESTINATION_DIR}
+```
+
+### 4. MERGE ALL JSON PACKS
+```shell
+python sp-merge.py --source-dir {SOURCE_JSON_DIR}
+
+```
+
+### 5. CHECK MISSING RANGES
+```shell
+python sp-check-missing.py
 ```
 
 ## NEXT STEPS TO COMPLETE OHLCV
