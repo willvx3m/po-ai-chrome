@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
 """
-Script to draw a scrollable candle chart from JSON data with zoom in/out functionality.
+Script to draw a scrollable candle chart from complete.json with zoom in/out functionality.
 Supports aggregated averages for different timeframes.
+
+Usage:
+python sp-draw-candle-chart.py --input complete.json
+python sp-draw-candle-chart.py --file-dialog
+
+
 """
 
 import json
@@ -17,7 +23,7 @@ from matplotlib.widgets import TextBox
 from typing import List, Dict, Any, Tuple
 import tkinter as tk
 from tkinter import filedialog
-
+from module.trend_lines import calculate_trend_lines
 
 class CandleChart:
     def __init__(self, data: List[Dict[str, Any]]):
@@ -28,8 +34,9 @@ class CandleChart:
         self.max_candles = 60  # Maximum candles to display at once
         self.view_end = min(self.max_candles, len(data))  # Show first 60 candles by default
         self.zoom_factor = 1.0
-        self.candle_patches = []  # Store candle patches for hover detection
         self.tooltip = None
+        self.trend_lines = []  # Store drawn trend lines
+        self.show_trend_lines = True  # Toggle for showing trend lines
         
         # Parse datetime and sort data
         self.parse_and_sort_data()
@@ -132,18 +139,18 @@ class CandleChart:
         self.ax.set_ylabel('Price')
         self.ax.grid(True, alpha=0.3)
         
-        # Format x-axis - use simple integer ticks instead of datetime
+        # Format x-axis
         self.ax.set_xlabel('Time')
-        self.ax.tick_params(axis='x', rotation=45)
+        self.ax.tick_params(axis='x', rotation=45, labelsize=8)
     
     def setup_controls(self):
         """Setup interactive controls"""
-        # Create control panel
-        plt.subplots_adjust(bottom=0.25, left=0.1, right=0.9)
+        # Create control panel with more space for x-axis labels
+        plt.subplots_adjust(bottom=0.2, left=0.1, right=0.9, top=0.9)
         
         # View range slider
         max_start = max(0, len(self.original_data) - self.max_candles)
-        ax_slider = plt.axes((0.1, 0.15, 0.65, 0.03))
+        ax_slider = plt.axes((0.1, 0.1, 0.65, 0.03))
         self.slider = Slider(
             ax_slider, 'View Position', 0, 
             max_start, 
@@ -152,7 +159,7 @@ class CandleChart:
         self.slider.on_changed(self.on_slider_change)
         
         # Zoom slider
-        ax_zoom = plt.axes((0.1, 0.1, 0.65, 0.03))
+        ax_zoom = plt.axes((0.1, 0.05, 0.65, 0.03))
         self.zoom_slider = Slider(
             ax_zoom, 'Zoom', 0.5, 2.0, 
             valinit=1.0, valstep=0.1
@@ -160,7 +167,7 @@ class CandleChart:
         self.zoom_slider.on_changed(self.on_zoom_change)
         
         # Aggregation buttons
-        ax_agg = plt.axes((0.8, 0.15, 0.15, 0.1))
+        ax_agg = plt.axes((0.8, 0.04, 0.1, 0.1))
         self.agg_buttons = RadioButtons(
             ax_agg, ('1m', '5m', '15m', '30m', '1h'),
             active=0
@@ -168,14 +175,24 @@ class CandleChart:
         self.agg_buttons.on_clicked(self.on_aggregation_change)
         
         # Navigation buttons
-        ax_prev = plt.axes((0.8, 0.05, 0.06, 0.03))
-        ax_next = plt.axes((0.89, 0.05, 0.06, 0.03))
+        ax_prev = plt.axes((0.82, 0.9, 0.04, 0.03))
+        ax_next = plt.axes((0.86, 0.9, 0.04, 0.03))
         
         self.btn_prev = Button(ax_prev, '←')
         self.btn_next = Button(ax_next, '→')
         
         self.btn_prev.on_clicked(self.on_prev_click)
         self.btn_next.on_clicked(self.on_next_click)
+        
+        # Trend line control buttons
+        ax_draw_trend = plt.axes((0.92, 0.9, 0.06, 0.03))
+        ax_erase_trend = plt.axes((0.92, 0.85, 0.06, 0.03))
+        
+        self.btn_draw_trend = Button(ax_draw_trend, 'Draw Trend')
+        self.btn_erase_trend = Button(ax_erase_trend, 'Erase Trend')
+        
+        self.btn_draw_trend.on_clicked(self.on_draw_trend_click)
+        self.btn_erase_trend.on_clicked(self.on_erase_trend_click)
     
     def setup_hover_events(self):
         """Setup hover events for tooltips"""
@@ -193,6 +210,8 @@ class CandleChart:
         self.zoom_factor = val
         view_width = int(self.max_candles / self.zoom_factor)
         self.view_end = min(self.view_start + view_width, len(self.current_data))
+        # Clear trend lines when zooming
+        self.trend_lines = []
         self.update_chart()
     
     def on_aggregation_change(self, label):
@@ -201,9 +220,10 @@ class CandleChart:
         self.aggregation_level = agg_levels[label]
         self.current_data = self.aggregate_data(self.aggregation_level)
         
-        # Reset view
+        # Reset view and clear trend lines
         self.view_start = 0
         self.view_end = min(self.max_candles, len(self.current_data))
+        self.trend_lines = []
         self.update_chart()
     
     def on_prev_click(self, event):
@@ -223,16 +243,58 @@ class CandleChart:
         self.slider.set_val(self.view_start)
         self.update_chart()
     
+    def on_draw_trend_click(self, event):
+        """Handle draw trend button click"""
+        view_data = self.current_data[self.view_start:self.view_end]
+        if len(view_data) >= 2:
+            result = calculate_trend_lines(view_data)
+            support = result.get("support")
+            resistance = result.get("resistance")
+            self.trend_lines = []
+            if support:
+                slope_s, intercept_s = support.get("slope"), support.get("intercept")
+                self.trend_lines.append((
+                    (self.view_start, intercept_s),
+                    (self.view_end, slope_s * len(view_data) + intercept_s),
+                    'support'
+                ))
+            if resistance:
+                slope_r, intercept_r = resistance.get("slope"), resistance.get("intercept")
+                self.trend_lines.append((
+                    (self.view_start, intercept_r),
+                    (self.view_end, slope_r * len(view_data) + intercept_r),
+                    'resistance'
+                ))
+            self.update_chart()
+    
+    def on_erase_trend_click(self, event):
+        """Handle erase trend button click"""
+        self.trend_lines = []
+        self.update_chart()
+    
     def on_hover(self, event):
         """Handle mouse hover events"""
         if event.inaxes != self.ax:
+            self.hide_tooltip()
             return
         
-        # Find which candle is being hovered
-        x_pos = int(event.xdata)
-        if 0 <= x_pos < len(self.candle_patches):
-            candle = self.current_data[self.view_start + x_pos]
+        # Get current view data
+        view_data = self.current_data[self.view_start:self.view_end]
+        if not view_data:
+            return
+        
+        # Find which candle is being hovered based on x position
+        x_pos = event.xdata
+        if x_pos is None or x_pos < 0 or x_pos >= len(view_data):
+            self.hide_tooltip()
+            return
+        
+        candle_index = int(x_pos)
+        if 0 <= candle_index < len(view_data):
+            candle = view_data[candle_index]
             self.show_tooltip(event, candle)
+        else:
+            self.hide_tooltip()
     
     def on_leave(self, event):
         """Handle mouse leave events"""
@@ -251,12 +313,19 @@ class CandleChart:
         tooltip_text += f"Low: {candle['low']:.6f}\n"
         tooltip_text += f"Close: {candle['close']:.6f}"
         
-        # Position tooltip near mouse
-        x, y = event.x, event.y
-        self.tooltip = self.ax.text(x, y, tooltip_text, 
-                                   bbox=dict(boxstyle="round,pad=0.5", facecolor="yellow", alpha=0.8),
-                                   fontsize=8, transform=self.ax.transData)
-        self.fig.canvas.draw_idle()
+        # Position tooltip near mouse but ensure it's visible
+        x_data, y_data = event.xdata, event.ydata
+        if x_data is not None and y_data is not None:
+            # Convert data coordinates to display coordinates
+            x_display, y_display = self.ax.transData.transform((x_data, y_data))
+            
+            # Add offset to position tooltip above the candle
+            y_offset = 20
+            self.tooltip = self.ax.text(x_data, y_data, tooltip_text, 
+                                       bbox=dict(boxstyle="round,pad=0.5", facecolor="yellow", alpha=0.95),
+                                       fontsize=8, transform=self.ax.transData,
+                                       verticalalignment='bottom')
+            self.fig.canvas.draw_idle()
     
     def hide_tooltip(self):
         """Hide tooltip"""
@@ -287,17 +356,11 @@ class CandleChart:
         rect = Rectangle((x_pos - 0.3, body_bottom), 0.6, body_height,
                         facecolor=color, edgecolor=edge_color, linewidth=1)
         self.ax.add_patch(rect)
-        
-        # Store the patch for hover detection
-        self.candle_patches.append(rect)
     
     def update_chart(self):
         """Update the chart display"""
         self.ax.clear()
         self.setup_plot()
-        
-        # Clear previous candle patches
-        self.candle_patches = []
         
         # Get the current view data
         view_data = self.current_data[self.view_start:self.view_end]
@@ -314,7 +377,7 @@ class CandleChart:
         
         # Set x-axis ticks to show time labels
         if len(view_data) > 20:
-            tick_step = max(1, len(view_data) // 10)
+            tick_step = max(1, len(view_data) // 20)
             tick_positions = range(0, len(view_data), tick_step)
             tick_labels = [view_data[i]['time_label'] for i in tick_positions]
         else:
@@ -323,6 +386,10 @@ class CandleChart:
         
         self.ax.set_xticks(tick_positions)
         self.ax.set_xticklabels(tick_labels)
+        
+        # Improve x-axis label visibility
+        self.ax.tick_params(axis='x', rotation=45, labelsize=8)
+        self.ax.tick_params(axis='y', labelsize=9)
         
         # Set y-axis limits with some padding
         all_prices = []
@@ -344,7 +411,7 @@ class CandleChart:
             agg_text = f" ({self.aggregation_level}m)" if self.aggregation_level > 1 else ""
             
             self.ax.set_title(
-                f'Candle Chart{agg_text} - {start_time.strftime("%Y-%m-%d %H:%M")} to {end_time.strftime("%H:%M")} '
+                f'Candle Chart{agg_text} - {start_time.strftime("%Y-%m-%d %H:%M")} to {end_time.strftime("%Y-%m-%d %H:%M")} '
                 f'(Showing {len(view_data)} candles, Position {self.view_start}-{self.view_end})',
                 fontsize=12
             )
@@ -353,6 +420,20 @@ class CandleChart:
         max_start = max(0, len(self.current_data) - int(self.max_candles / self.zoom_factor))
         self.slider.valmax = max_start
         self.slider.ax.set_xlim(0, max_start)
+        
+        # Draw trend lines if they exist
+        if self.trend_lines:
+            for index, trend_line in enumerate(self.trend_lines):
+                # trend_line is a list of points
+                x_coords = [trend_line[0][0] - self.view_start, trend_line[1][0] - self.view_start]
+                y_coords = [trend_line[0][1], trend_line[1][1]]
+                line_type = trend_line[2]
+                color = 'blue' if line_type == 'support' else 'orange'
+                label = 'Support' if line_type == 'support' else 'Resistance'
+                self.ax.plot(x_coords, y_coords, color=color, linestyle='--', linewidth=2, label=label)
+            
+            # Add legend for trend lines
+            self.ax.legend(loc='upper left', fontsize=8)
         
         plt.draw()
 
@@ -385,13 +466,13 @@ def select_file() -> str:
         filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
     )
     
-    return filename if filename else "merged-complete.json"
+    return filename if filename else "complete.json"
 
 
 def main():
     """Main function"""
     parser = argparse.ArgumentParser(description='Draw scrollable candle chart from JSON data')
-    parser.add_argument('--input', help='Input JSON file (default: merged-complete.json)')
+    parser.add_argument('--input', help='Input JSON file (default: complete.json)')
     parser.add_argument('--file-dialog', action='store_true', 
                        help='Open file dialog to select input file')
     
@@ -406,7 +487,7 @@ def main():
     elif args.input:
         input_file = args.input
     else:
-        input_file = "merged-complete.json"
+        input_file = "complete.json"
     
     # Load data
     data = load_json_data(input_file)
