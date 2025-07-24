@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """
 Script to draw a scrollable candle chart from complete.json with zoom in/out functionality.
-Supports aggregated averages for different timeframes.
+Supports aggregated averages for different timeframes and trading position visualization.
 
 Usage:
 python sp-draw-candle-chart.py --input complete.json
 python sp-draw-candle-chart.py --file-dialog
+python sp-draw-candle-chart.py --input complete.json --trading-results results.json
 
 
 """
@@ -26,9 +27,10 @@ from tkinter import filedialog
 from module.trend_lines import calculate_trend_lines
 
 class CandleChart:
-    def __init__(self, data: List[Dict[str, Any]]):
+    def __init__(self, data: List[Dict[str, Any]], trading_results: List[Dict[str, Any]] = None):
         self.original_data = data
         self.current_data = data
+        self.trading_results = trading_results or []
         self.aggregation_level = 1  # 1 minute intervals
         self.view_start = 0
         self.max_candles = 60  # Maximum candles to display at once
@@ -37,6 +39,7 @@ class CandleChart:
         self.tooltip = None
         self.trend_lines = []  # Store drawn trend lines
         self.show_trend_lines = True  # Toggle for showing trend lines
+        self.show_trading_positions = True  # Toggle for showing trading positions
         
         # Parse datetime and sort data
         self.parse_and_sort_data()
@@ -193,6 +196,22 @@ class CandleChart:
         
         self.btn_draw_trend.on_clicked(self.on_draw_trend_click)
         self.btn_erase_trend.on_clicked(self.on_erase_trend_click)
+        
+        # Trading positions toggle button
+        if self.trading_results:
+            ax_toggle_positions = plt.axes((0.91, 0.8, 0.08, 0.03))
+            self.btn_toggle_positions = Button(ax_toggle_positions, 'Toggle Positions')
+            self.btn_toggle_positions.on_clicked(self.on_toggle_positions_click)
+            
+            # Trading position navigation buttons
+            ax_prev_trade = plt.axes((0.91, 0.75, 0.04, 0.03))
+            ax_next_trade = plt.axes((0.95, 0.75, 0.04, 0.03))
+            
+            self.btn_prev_trade = Button(ax_prev_trade, '← Trade')
+            self.btn_next_trade = Button(ax_next_trade, 'Trade →')
+            
+            self.btn_prev_trade.on_clicked(self.on_prev_trade_click)
+            self.btn_next_trade.on_clicked(self.on_next_trade_click)
     
     def setup_hover_events(self):
         """Setup hover events for tooltips"""
@@ -271,6 +290,106 @@ class CandleChart:
         """Handle erase trend button click"""
         self.trend_lines = []
         self.update_chart()
+    
+    def on_toggle_positions_click(self, event):
+        """Handle toggle positions button click"""
+        self.show_trading_positions = not self.show_trading_positions
+        self.update_chart()
+    
+    def get_all_trading_positions(self):
+        """Get all trading positions sorted by entry time"""
+        positions = []
+        for result in self.trading_results:
+            strategy_start = result.get('strategy_start_index', 0)
+            strategy_finished = result.get('strategy_finished_index', 0)
+            positions_list = result.get('positions', [])
+            profit = result.get('profit', 0)
+            
+            for position in positions_list:
+                entry_candle_index = position.get('entry_candle_index', 0)
+                positions.append({
+                    'entry_index': entry_candle_index,
+                    'exit_index': strategy_finished,
+                    'position': position,
+                    'profit': profit,
+                    'strategy_start': strategy_start,
+                    'strategy_finished': strategy_finished
+                })
+        
+        # Sort by entry index
+        positions.sort(key=lambda x: x['entry_index'])
+        return positions
+    
+    def find_nearest_trading_position(self, current_index: int, direction: str = 'next'):
+        """Find the nearest trading position in the specified direction"""
+        positions = self.get_all_trading_positions()
+        if not positions:
+            return None
+        
+        if direction == 'next':
+            # Find the next position after current_index
+            for pos in positions:
+                if pos['entry_index'] > current_index:
+                    return pos
+            return None
+        else:  # previous
+            # Find the previous position before current_index
+            for pos in reversed(positions):
+                if pos['entry_index'] < current_index:
+                    return pos
+            return None
+    
+    def center_view_on_position(self, position_data: Dict[str, Any]):
+        """Center the view on a specific trading position"""
+        entry_index = position_data['entry_index']
+        exit_index = position_data['exit_index']
+        
+        # Calculate the center point of the position
+        center_index = (entry_index + exit_index) // 2
+        
+        # Calculate view width based on zoom
+        view_width = int(self.max_candles / self.zoom_factor)
+        
+        # Calculate the start index to center the position
+        view_start = max(0, center_index - view_width // 2)
+        
+        # Ensure we don't go beyond the data bounds
+        max_start = max(0, len(self.current_data) - view_width)
+        view_start = min(view_start, max_start)
+        
+        # Update the view
+        self.view_start = view_start
+        self.view_end = min(view_start + view_width, len(self.current_data))
+        self.slider.set_val(view_start)
+        self.update_chart()
+    
+    def on_prev_trade_click(self, event):
+        """Handle previous trading position button click"""
+        if not self.trading_results:
+            return
+        
+        # Find the nearest previous trading position
+        current_center = self.view_start + (self.view_end - self.view_start) // 2
+        prev_position = self.find_nearest_trading_position(current_center, 'previous')
+        
+        if prev_position:
+            self.center_view_on_position(prev_position)
+        else:
+            print("No previous trading position found.")
+    
+    def on_next_trade_click(self, event):
+        """Handle next trading position button click"""
+        if not self.trading_results:
+            return
+        
+        # Find the nearest next trading position
+        current_center = self.view_start + (self.view_end - self.view_start) // 2
+        next_position = self.find_nearest_trading_position(current_center, 'next')
+        
+        if next_position:
+            self.center_view_on_position(next_position)
+        else:
+            print("No next trading position found.")
     
     def on_hover(self, event):
         """Handle mouse hover events"""
@@ -357,6 +476,234 @@ class CandleChart:
                         facecolor=color, edgecolor=edge_color, linewidth=1)
         self.ax.add_patch(rect)
     
+    def draw_trading_position(self, position: Dict[str, Any], x_pos: int, y_pos: float, duration_end_x: int = None):
+        """
+        Draw a single trading position marker with duration.
+        
+        Args:
+            position: Dictionary containing position data (direction, amount, entry_price, etc.)
+            x_pos: X position on the chart (entry point)
+            y_pos: Y position (price level)
+            duration_end_x: X position where the position ends (exit point)
+        """
+        direction = position.get('direction', 'call')
+        amount = position.get('amount', 1)
+        entry_price = position.get('entry_price', y_pos)
+        profit = position.get('profit', 0)  # If available in the position data
+        
+        # Determine marker properties based on direction and profit
+        if direction == 'call':
+            marker = '^'  # Upward triangle for call
+            color = 'green' if profit >= 0 else 'red'
+        else:  # put
+            marker = 'v'  # Downward triangle for put
+            color = 'green' if profit >= 0 else 'red'
+        
+        # Adjust marker size based on amount
+        marker_size = 8 + (amount * 2)  # Base size + amount multiplier
+        
+        # Draw the position marker
+        self.ax.scatter(x_pos, entry_price, 
+                       marker=marker, 
+                       s=marker_size, 
+                       c=color, 
+                       edgecolors='black', 
+                       linewidth=1,
+                       alpha=0.8,
+                       zorder=5)  # Ensure markers are above candles
+        
+        # Add text label for amount
+        self.ax.text(x_pos + 0.5, entry_price, 
+                    f'{amount}', 
+                    fontsize=8, 
+                    ha='left', 
+                    va='center',
+                    bbox=dict(boxstyle="round,pad=0.2", facecolor='white', alpha=0.8),
+                    zorder=6)
+        
+        # Draw duration line/rectangle if we have an end point
+        if duration_end_x is not None and duration_end_x > x_pos:
+            # Draw a horizontal line or rectangle to show position duration
+            duration_width = duration_end_x - x_pos
+            
+            # Create a rectangle to show the position duration
+            rect = Rectangle((x_pos, entry_price - 0.0001), duration_width, 0.0002,
+                           facecolor=color, alpha=0.3, edgecolor=color, linewidth=1, zorder=4)
+            self.ax.add_patch(rect)
+            
+            # Add exit marker at the end
+            exit_marker = 'o'  # Circle for exit point
+            self.ax.scatter(duration_end_x, entry_price, 
+                           marker=exit_marker, 
+                           s=marker_size * 0.7, 
+                           c=color, 
+                           edgecolors='black', 
+                           linewidth=1,
+                           alpha=0.8,
+                           zorder=5)
+    
+    def draw_strategy_profit(self, strategy_finished_index: int, profit: float, y_pos: float):
+        """
+        Draw profit text after the last position of a strategy.
+        
+        Args:
+            strategy_finished_index: The index where the strategy finished
+            profit: The profit/loss of the strategy
+            y_pos: Y position (price level) for the text
+        """
+        # Calculate relative position within the view
+        view_start_global = self.view_start
+        relative_x = strategy_finished_index - view_start_global
+        
+        # Only draw if the strategy end is within the current view
+        if 0 <= relative_x < len(self.current_data[self.view_start:self.view_end]):
+            # Determine color based on profit
+            color = 'green' if profit >= 0 else 'red'
+            
+            # Format profit text
+            profit_text = f"{profit:+.2f}"
+            
+            # Draw profit text
+            self.ax.text(relative_x + 1, y_pos, 
+                        profit_text, 
+                        fontsize=10, 
+                        ha='left', 
+                        va='center',
+                        color=color,
+                        weight='bold',
+                        bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.9, edgecolor=color),
+                        zorder=7)  # Ensure text is above everything else
+    
+    def draw_trend_lines_from_json(self, trend_lines: Dict[str, Any], trend_start_index: int, trend_end_index: int):
+        """
+        Draw trend lines from JSON data.
+        
+        Args:
+            trend_lines: Dictionary containing support and resistance line data
+            trend_start_index: Start index of the trend lines
+            trend_end_index: End index of the trend lines
+        """
+        if not trend_lines or "error" in trend_lines:
+            return
+        
+        # Calculate relative positions within the view
+        view_start_global = self.view_start
+        view_end_global = self.view_start + len(self.current_data[self.view_start:self.view_end])
+        
+        # Check if trend lines overlap with current view
+        if trend_start_index >= view_end_global or trend_end_index <= view_start_global:
+            return
+        
+        # Calculate relative start and end positions
+        relative_start = trend_start_index - view_start_global
+        relative_end = trend_end_index - view_start_global
+
+        # Draw support line
+        if "support" in trend_lines:
+            support = trend_lines["support"]
+            slope_s = support.get("slope", 0)
+            intercept_s = support.get("intercept", 0)
+            
+            # Calculate y values for start and end points
+            y_start_support = intercept_s
+            y_end_support = slope_s * (relative_end - relative_start) + intercept_s
+            
+            # Draw support line
+            self.ax.plot([relative_start, relative_end], [y_start_support, y_end_support], 
+                        color='blue', linestyle='--', linewidth=2, alpha=0.7, zorder=3, label='Support')
+        
+        # Draw resistance line
+        if "resistance" in trend_lines:
+            resistance = trend_lines["resistance"]
+            slope_r = resistance.get("slope", 0)
+            intercept_r = resistance.get("intercept", 0)
+            
+            # Calculate y values for start and end points
+            y_start_resistance = intercept_r
+            y_end_resistance = slope_r * (relative_end - relative_start) + intercept_r
+            
+            # Draw resistance line
+            self.ax.plot([relative_start, relative_end], [y_start_resistance, y_end_resistance], 
+                        color='orange', linestyle='--', linewidth=2, alpha=0.7, zorder=3, label='Resistance')
+    
+    def draw_trading_positions(self):
+        """Draw all trading positions that fall within the current view"""
+        if not self.show_trading_positions or not self.trading_results:
+            return
+        
+        # Get the current view data
+        view_data = self.current_data[self.view_start:self.view_end]
+        if not view_data:
+            return
+        
+        # Find the global indices for the current view
+        view_start_global = self.view_start
+        view_end_global = self.view_start + len(view_data)
+        
+        # Track strategies that have been processed to avoid duplicate profit labels
+        processed_strategies = set()
+        
+        for result in self.trading_results:
+            strategy_start = result.get('strategy_start_index', 0)
+            strategy_finished = result.get('strategy_finished_index', 0)
+            positions = result.get('positions', [])
+            profit = result.get('profit', 0)
+            
+            # Get trend line data from the result
+            trend_lines = result.get('trend_lines', None)
+            trend_start_index = result.get('trend_start_index', strategy_start)
+            trend_end_index = result.get('trend_end_index', strategy_finished)
+            
+            # Check if this strategy result overlaps with current view
+            if (strategy_start <= view_end_global and strategy_finished >= view_start_global):
+                
+                # Draw trend lines if available
+                if trend_lines:
+                    self.draw_trend_lines_from_json(trend_lines, trend_start_index, trend_end_index)
+                
+                # Track if we've drawn any positions for this strategy
+                strategy_has_positions_in_view = False
+                last_position_y = None
+                
+                # Draw each position in this strategy
+                for position in positions:
+                    entry_candle_index = position.get('entry_candle_index', 0)
+                    
+                    # Check if this position is within the current view or extends into it
+                    if (entry_candle_index < view_end_global and strategy_finished >= view_start_global):
+                        
+                        # Calculate relative positions within the view
+                        entry_relative_x = max(0, entry_candle_index - view_start_global)
+                        exit_relative_x = min(len(view_data), strategy_finished - view_start_global)
+                        
+                        # Only draw if the position has some visibility in the current view
+                        if entry_relative_x < len(view_data):
+                            # Get the entry price
+                            entry_price = position.get('entry_price', 0)
+                            last_position_y = entry_price  # Track for profit label placement
+                            
+                            # Add profit information to position data for coloring
+                            position_with_profit = position.copy()
+                            position_with_profit['profit'] = profit
+                            
+                            # Determine the end x position for duration visualization
+                            duration_end_x = None
+                            if exit_relative_x > entry_relative_x and exit_relative_x <= len(view_data):
+                                duration_end_x = exit_relative_x
+                            
+                            # Draw the position with duration
+                            self.draw_trading_position(position_with_profit, entry_relative_x, entry_price, duration_end_x)
+                            strategy_has_positions_in_view = True
+                
+                # Draw profit label if this strategy has positions in view and hasn't been processed
+                if (strategy_has_positions_in_view and 
+                    strategy_finished not in processed_strategies and 
+                    last_position_y is not None):
+                    
+                    # Use the last position's price level for profit label placement
+                    self.draw_strategy_profit(strategy_finished, profit, last_position_y)
+                    processed_strategies.add(strategy_finished)
+    
     def update_chart(self):
         """Update the chart display"""
         self.ax.clear()
@@ -371,6 +718,9 @@ class CandleChart:
         # Draw candlesticks
         for i, candle in enumerate(view_data):
             self.draw_candlestick(candle, i)
+        
+        # Draw trading positions
+        self.draw_trading_positions()
         
         # Set x-axis limits
         self.ax.set_xlim(-1, len(view_data))
@@ -409,9 +759,10 @@ class CandleChart:
             start_time = view_data[0]['datetime']
             end_time = view_data[-1]['datetime']
             agg_text = f" ({self.aggregation_level}m)" if self.aggregation_level > 1 else ""
+            positions_text = " + Positions" if self.show_trading_positions and self.trading_results else ""
             
             self.ax.set_title(
-                f'Candle Chart{agg_text} - {start_time.strftime("%Y-%m-%d %H:%M")} to {end_time.strftime("%Y-%m-%d %H:%M")} '
+                f'Candle Chart{agg_text}{positions_text} - {start_time.strftime("%Y-%m-%d %H:%M")} to {end_time.strftime("%Y-%m-%d %H:%M")} '
                 f'(Showing {len(view_data)} candles, Position {self.view_start}-{self.view_end})',
                 fontsize=12
             )
@@ -456,6 +807,24 @@ def load_json_data(filename: str) -> List[Dict[str, Any]]:
         return []
 
 
+def load_trading_results(filename: str) -> List[Dict[str, Any]]:
+    """Load trading results JSON data from file"""
+    try:
+        with open(filename, 'r') as f:
+            data = json.load(f)
+        print(f"Loaded {len(data)} trading results from {filename}")
+        return data
+    except FileNotFoundError:
+        print(f"❌ Error: {filename} file not found!")
+        return []
+    except json.JSONDecodeError:
+        print(f"❌ Error: Invalid JSON format in {filename}!")
+        return []
+    except Exception as e:
+        print(f"❌ Error: {str(e)}")
+        return []
+
+
 def select_file() -> str:
     """Open file dialog to select JSON file"""
     root = tk.Tk()
@@ -475,6 +844,7 @@ def main():
     parser.add_argument('--input', help='Input JSON file (default: complete.json)')
     parser.add_argument('--file-dialog', action='store_true', 
                        help='Open file dialog to select input file')
+    parser.add_argument('--trading-results', help='Trading results JSON file to overlay positions')
     
     args = parser.parse_args()
     
@@ -489,10 +859,17 @@ def main():
     else:
         input_file = "complete.json"
     
-    # Load data
+    # Load candle data
     data = load_json_data(input_file)
     if not data:
         return
+    
+    # Load trading results if provided
+    trading_results = []
+    if args.trading_results:
+        trading_results = load_trading_results(args.trading_results)
+        if not trading_results:
+            print("Warning: Could not load trading results, continuing without position overlay.")
     
     # Create and display chart
     print("Creating interactive candle chart...")
@@ -503,8 +880,11 @@ def main():
     print("  - Arrow buttons: Quick navigation")
     print("  - Mouse wheel: Zoom in/out")
     print("  - Mouse drag: Pan around")
+    if trading_results:
+        print("  - Toggle Positions: Show/hide trading positions")
+        print("  - ← Trade / Trade →: Navigate between trading positions")
     
-    chart = CandleChart(data)
+    chart = CandleChart(data, trading_results)
     plt.show()
 
 

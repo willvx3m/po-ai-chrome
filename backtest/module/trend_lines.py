@@ -104,7 +104,7 @@ def calculate_trend_lines(candles):
                     if not is_valid_resistance(slope_r, intercept_r, points):
                         continue
                         
-                    print("Valid resistance line", slope_r, intercept_r, resistance_points[k], resistance_points[l])
+                    # print("Valid resistance line", slope_r, intercept_r, resistance_points[k], resistance_points[l])
 
                     # Ensure resistance is above support for all x
                     valid_pair = True
@@ -132,7 +132,7 @@ def calculate_trend_lines(candles):
                         )
                     )
 
-                    print("Valid pair", area, slope_s, intercept_s, slope_r, intercept_r, support_points[i], support_points[j], resistance_points[k], resistance_points[l])
+                    # print("Valid pair", area, slope_s, intercept_s, slope_r, intercept_r, support_points[i], support_points[j], resistance_points[k], resistance_points[l])
 
     if not valid_pairs:
         return {

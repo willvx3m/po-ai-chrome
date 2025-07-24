@@ -1,0 +1,2 @@
+1. Calculate trend lines with time range
+curl -X POST http://localhost:4000/calculate-trend-lines -H "Content-Type: application/json" -d '{"start_time": "2025-05-09 15:00", "end_time": "2025-05-09 22:01"}'
