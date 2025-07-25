@@ -8,7 +8,6 @@ python sp-draw-candle-chart.py --input complete.json
 python sp-draw-candle-chart.py --file-dialog
 python sp-draw-candle-chart.py --input complete.json --trading-results results.json
 
-
 """
 
 import json
@@ -25,6 +24,12 @@ from typing import List, Dict, Any, Tuple
 import tkinter as tk
 from tkinter import filedialog
 from module.trend_lines import calculate_trend_lines
+from module.indicator import calculate_ema_indicator, calculate_sma_indicator
+
+# Indicator period constants
+EMA_LONG_PERIOD = 30
+EMA_SHORT_PERIOD = 5
+SMA_PERIOD = 5
 
 class CandleChart:
     def __init__(self, data: List[Dict[str, Any]], trading_results: List[Dict[str, Any]] = None):
@@ -40,6 +45,11 @@ class CandleChart:
         self.trend_lines = []  # Store drawn trend lines
         self.show_trend_lines = True  # Toggle for showing trend lines
         self.show_trading_positions = True  # Toggle for showing trading positions
+        
+        # Indicator toggles
+        self.show_ema_long = False
+        self.show_ema_short = False
+        self.show_sma = False
         
         # Parse datetime and sort data
         self.parse_and_sort_data()
@@ -212,6 +222,19 @@ class CandleChart:
             
             self.btn_prev_trade.on_clicked(self.on_prev_trade_click)
             self.btn_next_trade.on_clicked(self.on_next_trade_click)
+        
+        # Indicator toggle buttons
+        ax_ema_50 = plt.axes((0.91, 0.7, 0.08, 0.03))
+        ax_ema_10 = plt.axes((0.91, 0.66, 0.08, 0.03))
+        ax_sma_10 = plt.axes((0.91, 0.62, 0.08, 0.03))
+        
+        self.btn_ema_50 = Button(ax_ema_50, f'EMA({EMA_LONG_PERIOD})')
+        self.btn_ema_10 = Button(ax_ema_10, f'EMA({EMA_SHORT_PERIOD})')
+        self.btn_sma_10 = Button(ax_sma_10, f'SMA({SMA_PERIOD})')
+        
+        self.btn_ema_50.on_clicked(self.on_toggle_ema_50_click)
+        self.btn_ema_10.on_clicked(self.on_toggle_ema_10_click)
+        self.btn_sma_10.on_clicked(self.on_toggle_sma_10_click)
     
     def setup_hover_events(self):
         """Setup hover events for tooltips"""
@@ -294,6 +317,21 @@ class CandleChart:
     def on_toggle_positions_click(self, event):
         """Handle toggle positions button click"""
         self.show_trading_positions = not self.show_trading_positions
+        self.update_chart()
+    
+    def on_toggle_ema_50_click(self, event):
+        """Handle toggle EMA(50) button click"""
+        self.show_ema_long = not self.show_ema_long
+        self.update_chart()
+    
+    def on_toggle_ema_10_click(self, event):
+        """Handle toggle EMA(10) button click"""
+        self.show_ema_short = not self.show_ema_short
+        self.update_chart()
+    
+    def on_toggle_sma_10_click(self, event):
+        """Handle toggle SMA(10) button click"""
+        self.show_sma = not self.show_sma
         self.update_chart()
     
     def get_all_trading_positions(self):
@@ -626,6 +664,74 @@ class CandleChart:
             self.ax.plot([relative_start, relative_end], [y_start_resistance, y_end_resistance], 
                         color='orange', linestyle='--', linewidth=2, alpha=0.7, zorder=3, label='Resistance')
     
+    def calculate_indicator_values(self, indicator_type: str, period: int) -> List[float]:
+        """
+        Calculate indicator values for the current view.
+        
+        Args:
+            indicator_type: 'ema' or 'sma'
+            period: period for the indicator
+            
+        Returns:
+            List of indicator values for the current view
+        """
+        view_data = self.current_data[self.view_start:self.view_end]
+        values = []
+        
+        for i in range(len(view_data)):
+            # Get candles up to current position
+            candles_up_to_current = self.current_data[max(0, self.view_start+i+1-period):self.view_start + i + 1]
+            
+            if indicator_type == 'ema':
+                value = calculate_ema_indicator(candles_up_to_current, period)
+            elif indicator_type == 'sma':
+                value = calculate_sma_indicator(candles_up_to_current, period)
+            else:
+                value = None
+            
+            values.append(value)
+        
+        return values
+    
+    def draw_indicators(self):
+        """Draw all enabled indicators"""
+        view_data = self.current_data[self.view_start:self.view_end]
+        if not view_data:
+            return
+        
+        x_positions = list(range(len(view_data)))
+        
+        # Draw EMA(50)
+        if self.show_ema_long:
+            ema_long_values = self.calculate_indicator_values('ema', EMA_LONG_PERIOD)
+            valid_ema_long = [(i, val) for i, val in enumerate(ema_long_values) if val is not None]
+            if valid_ema_long:
+                x_vals, y_vals = zip(*valid_ema_long)
+                self.ax.plot(x_vals, y_vals, color='purple', linewidth=2, alpha=0.8, 
+                           label=f'EMA({EMA_LONG_PERIOD})', zorder=2)
+        
+        # Draw EMA(10)
+        if self.show_ema_short:
+            ema_short_values = self.calculate_indicator_values('ema', EMA_SHORT_PERIOD)
+            valid_ema_short = [(i, val) for i, val in enumerate(ema_short_values) if val is not None]
+            if valid_ema_short:
+                x_vals, y_vals = zip(*valid_ema_short)
+                self.ax.plot(x_vals, y_vals, color='orange', linewidth=2, alpha=0.8, 
+                           label=f'EMA({EMA_SHORT_PERIOD})', zorder=2)
+        
+        # Draw SMA(10)
+        if self.show_sma:
+            sma_values = self.calculate_indicator_values('sma', SMA_PERIOD)
+            valid_sma = [(i, val) for i, val in enumerate(sma_values) if val is not None]
+            if valid_sma:
+                x_vals, y_vals = zip(*valid_sma)
+                self.ax.plot(x_vals, y_vals, color='blue', linewidth=2, alpha=0.8, 
+                           label=f'SMA({SMA_PERIOD})', zorder=2)
+        
+        # Add legend if any indicators are shown
+        if any([self.show_ema_long, self.show_ema_short, self.show_sma]):
+            self.ax.legend(loc='upper left', fontsize=8)
+    
     def draw_trading_positions(self):
         """Draw all trading positions that fall within the current view"""
         if not self.show_trading_positions or not self.trading_results:
@@ -722,6 +828,9 @@ class CandleChart:
         # Draw trading positions
         self.draw_trading_positions()
         
+        # Draw indicators
+        self.draw_indicators()
+        
         # Set x-axis limits
         self.ax.set_xlim(-1, len(view_data))
         
@@ -761,8 +870,19 @@ class CandleChart:
             agg_text = f" ({self.aggregation_level}m)" if self.aggregation_level > 1 else ""
             positions_text = " + Positions" if self.show_trading_positions and self.trading_results else ""
             
+            # Add indicator text to title
+            indicators = []
+            if self.show_ema_long:
+                indicators.append(f"EMA({EMA_LONG_PERIOD})")
+            if self.show_ema_short:
+                indicators.append(f"EMA({EMA_SHORT_PERIOD})")
+            if self.show_sma:
+                indicators.append(f"SMA({SMA_PERIOD})")
+            
+            indicators_text = " + " + ", ".join(indicators) if indicators else ""
+            
             self.ax.set_title(
-                f'Candle Chart{agg_text}{positions_text} - {start_time.strftime("%Y-%m-%d %H:%M")} to {end_time.strftime("%Y-%m-%d %H:%M")} '
+                f'Candle Chart{agg_text}{positions_text}{indicators_text} - {start_time.strftime("%Y-%m-%d %H:%M")} to {end_time.strftime("%Y-%m-%d %H:%M")} '
                 f'(Showing {len(view_data)} candles, Position {self.view_start}-{self.view_end})',
                 fontsize=12
             )
@@ -880,6 +1000,7 @@ def main():
     print("  - Arrow buttons: Quick navigation")
     print("  - Mouse wheel: Zoom in/out")
     print("  - Mouse drag: Pan around")
+    print("  - EMA LONG, EMA SHORT, SMA: Toggle technical indicators")
     if trading_results:
         print("  - Toggle Positions: Show/hide trading positions")
         print("  - ← Trade / Trade →: Navigate between trading positions")

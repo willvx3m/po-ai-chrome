@@ -1,7 +1,7 @@
 import json
 import os
 from datetime import datetime
-from trend_lines import calculate_trend_lines
+from indicator import calculate_ema_indicator, get_trend_based_on_ema
 from strategy import run_strategy, STRATEGY_DURATION, MAX_POSITIONS
 import itertools
 import pandas as pd
@@ -10,66 +10,45 @@ import pandas as pd
 JSON_PATH = './eurusd-full.json'
 
 # Status constants
-CALCULATING_TREND = "CALCULATING_TREND"
-CHECKING_TREND_BREAK = "CHECKING_TREND_BREAK"
+CHECKING_ENTRY = "CHECKING_ENTRY"
 RUNNING_STRATEGY = "RUNNING_STRATEGY"
 
-def is_trend_line_broken(candle, trend_lines, candle_index):
+def can_enter_strategy(candles, short_period, long_period, trend_persist_period = 0):
     """
-    Check if the current candle breaks the trend lines.
-    
-    Args:
-        candle: Dictionary with candle data
-        trend_lines: Dictionary containing support and resistance line equations
-        candle_index: Index of the current candle in the trend calculation
-    
-    Returns:
-        tuple: (support_break, resistance_break)
-    """
-    if "error" in trend_lines:
-        return False, False
-    
-    if "support" not in trend_lines or trend_lines["support"]["slope"] < 0:
-        return False, False
-    if "resistance" not in trend_lines or trend_lines["resistance"]["slope"] > 0:
-        return False, False
-    
-    # Calculate support and resistance values at this candle index
-    support_slope = trend_lines["support"]["slope"]
-    support_intercept = trend_lines["support"]["intercept"]
-    resistance_slope = trend_lines["resistance"]["slope"]
-    resistance_intercept = trend_lines["resistance"]["intercept"]
-    
-    support_value = support_slope * candle_index + support_intercept
-    resistance_value = resistance_slope * candle_index + resistance_intercept
-    
-    # Check if candle breaks the trend lines
-    support_break = candle["low"] <= support_value * (1)
-    resistance_break = candle["high"] >= resistance_value * (1)
-    
-    return support_break, resistance_break
-
-def calculate_trend_lines_for_candles(candles):
-    """
-    Calculate trend lines for a given set of candles.
+    Check if the current candle can enter the strategy.
     
     Args:
         candles: List of candle dictionaries
+        short_period: Short period of the ema (from the last candle)
+        long_period: Long period of the ema (from the last candle)
     
     Returns:
-        dict: Trend lines calculation result
+        Boolean: True if the current candle can enter the strategy, False otherwise
     """
-    if len(candles) < 10:  # Minimum required by trend_lines module
-        return {"error": f"Need at least 10 candles to calculate trend lines"}
+    current_trend = get_trend_based_on_ema(candles, short_period, long_period, trend_persist_period)
+    if not current_trend:
+        return None
     
-    return calculate_trend_lines(candles)
+    short_ema = calculate_ema_indicator(candles, short_period)
+    if not short_ema:
+        return None
 
-def run_single_backtest(min_candles_for_trend, strategy_duration, max_positions):
+    # if the trend is persisted, check if the current candle pushes the trend
+    current_price = (candles[-1]["low"] + candles[-1]["high"]) / 2
+    if current_trend == "up" and current_price > short_ema:
+        return "call"
+    elif current_trend == "down" and current_price < short_ema:
+        return "put"
+    else:
+        return None
+    
+def run_single_backtest(short_period, long_period, strategy_duration, max_positions, trend_persist_period = 0, debug=False):
     """
     Run a single backtest with specific parameters.
     
     Args:
-        min_candles_for_trend: Number of candles to use for trend calculation
+        short_period: Short period of the ema
+        long_period: Long period of the ema
         strategy_duration: Duration of the strategy in candles
         max_positions: Maximum number of positions
     
@@ -98,11 +77,8 @@ def run_single_backtest(min_candles_for_trend, strategy_duration, max_positions)
     strategy.MAX_POSITIONS = max_positions
     
     # Initialize variables
-    current_index = min_candles_for_trend - 1
-    status = CALCULATING_TREND
-    trend_lines = None
-    trend_start_index = None
-    trend_end_index = None
+    current_index = long_period - 1
+    status = CHECKING_ENTRY
     strategy_state = None
     results = []
     strategy_start_index = None
@@ -110,44 +86,21 @@ def run_single_backtest(min_candles_for_trend, strategy_duration, max_positions)
     
     # Main loop
     while current_index < len(candles):
+        # print(f"Index: {current_index}")
         current_candle = candles[current_index]
         
-        if status == CALCULATING_TREND:
-            # Calculate trend lines using the last N candles
-            temp_start_index = max(0, current_index - min_candles_for_trend)
-            temp_end_index = min(current_index, temp_start_index + min_candles_for_trend)
-            lookback_candles = candles[temp_start_index:temp_end_index]
-            trend_lines = calculate_trend_lines_for_candles(lookback_candles)
-            
-            if "error" not in trend_lines:
-                trend_start_index = temp_start_index
-                trend_end_index = temp_end_index
-                status = CHECKING_TREND_BREAK
-            else:
-                current_index += 1
-                continue
-        
-        elif status == CHECKING_TREND_BREAK:
-            # Calculate the relative index for trend line checking
-            relative_index = current_index - trend_start_index
-            
-            support_break, resistance_break = is_trend_line_broken(current_candle, trend_lines, relative_index)
-            if trend_lines and (support_break or resistance_break):
+        if status == CHECKING_ENTRY:
+            ema_handles = candles[max(0, current_index - long_period - trend_persist_period):current_index + 1]
+            can_enter = can_enter_strategy(ema_handles, short_period, long_period, trend_persist_period)
+            # print(f"Index: {current_index}, Can enter: {can_enter}")
+            if can_enter:
                 status = RUNNING_STRATEGY
                 strategy_state = None  # Reset strategy state
                 strategy_start_index = current_index
-                strategy_direction = "call" if support_break else "put"
+                strategy_direction = can_enter
             else:
-                # if the trend line is not broken and the relative index is greater than min_candles_for_trend // 2, recalculate the trend lines
-                if current_index - trend_end_index > min_candles_for_trend // 2:
-                    status = CALCULATING_TREND
-                    trend_lines = None
-                    trend_start_index = None
-                    trend_end_index = None
-                    continue
-                else:
-                    current_index += 1
-                    continue
+                current_index += 1
+                continue
         
         elif status == RUNNING_STRATEGY:
             # Run strategy directly
@@ -173,14 +126,13 @@ def run_single_backtest(min_candles_for_trend, strategy_duration, max_positions)
                     "amount": strategy_state["total_amount"],
                     "strategy_start_index": strategy_start_index,
                     "strategy_finished_index": current_index,
-                    "trend_start_index": trend_start_index,
-                    "trend_end_index": trend_end_index,
-                    "trend_lines": trend_lines,
                     "positions": strategy_state.get("positions", []),
                 })
 
-                status = CALCULATING_TREND
-                trend_lines = None
+                if debug:
+                    print(f"Start: {strategy_start_index}, End: {current_index}, Amount: {strategy_state['total_amount']}, Profit: {strategy_state['total_profit']}, Positions: {len(strategy_state.get('positions', []))}")
+
+                status = CHECKING_ENTRY
                 strategy_start_index = None
                 strategy_state = None
             
@@ -198,13 +150,15 @@ def run_single_backtest(min_candles_for_trend, strategy_duration, max_positions)
         avg_profit = total_profit / num_trades if num_trades > 0 else 0
 
         # save results to json
-        with open(f"results/{min_candles_for_trend}_{strategy_duration}_{max_positions}.json", "w") as f:
+        with open(f"results/ma_{short_period}_{long_period}_{strategy_duration}_{max_positions}_{trend_persist_period}.json", "w") as f:
             json.dump(results, f)
         
         return {
-            "min_candles_for_trend": min_candles_for_trend,
+            "short_period": short_period,
+            "long_period": long_period,
             "strategy_duration": strategy_duration,
             "max_positions": max_positions,
+            "trend_persist_period": trend_persist_period,
             "total_trades": num_trades,
             "total_profit": total_profit,
             "total_amount": total_amount,
@@ -214,9 +168,11 @@ def run_single_backtest(min_candles_for_trend, strategy_duration, max_positions)
         }
     else:
         return {
-            "min_candles_for_trend": min_candles_for_trend,
+            "short_period": short_period,
+            "long_period": long_period,
             "strategy_duration": strategy_duration,
             "max_positions": max_positions,
+            "trend_persist_period": trend_persist_period,
             "total_trades": 0,
             "total_profit": 0,
             "total_amount": 0,
@@ -226,9 +182,9 @@ def run_single_backtest(min_candles_for_trend, strategy_duration, max_positions)
         }
 
 if __name__ == "__main__":
-    result = run_single_backtest(30, 5, 3) 
+    result = run_single_backtest(5, 60, 10, 5, 10, True) 
     if result:
-        print(f" Trades: {result['total_trades']}, "
+        print(f"=> Trades: {result['total_trades']}, "
                 f"Profit: {result['total_profit']:.2f}, "
                 f"Amount: {result['total_amount']:.2f}, "
                 f"ROI: {result['roi']:.2f}")

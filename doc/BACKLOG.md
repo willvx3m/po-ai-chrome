@@ -11,6 +11,9 @@ WELCOMEXX: First Deposit
 MARKET100
 FIBO100
 
+X2SUMMER: 100%
+STRADE: 60%
+
 Check out PO youtube channel.
 
 ## Development
