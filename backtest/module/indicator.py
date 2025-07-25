@@ -106,7 +106,7 @@ def calculate_rsi_indicator(candles, period):
     
     # Calculate price changes
     changes = []
-    for i in range(1, len(closes)):
+    for i in range(len(closes)-period, len(closes)):
         changes.append(closes[i] - closes[i-1])
     
     if len(changes) < period:
@@ -117,8 +117,8 @@ def calculate_rsi_indicator(candles, period):
     losses = [-change if change < 0 else 0 for change in changes]
     
     # Calculate average gains and losses for the period
-    avg_gain = sum(gains[-period:]) / period
-    avg_loss = sum(losses[-period:]) / period
+    avg_gain = sum(gains) / period
+    avg_loss = sum(losses) / period
     
     # Calculate RS and RSI
     if avg_loss == 0:
@@ -129,29 +129,26 @@ def calculate_rsi_indicator(candles, period):
     
     return rsi
 
-def calculate_macd_indicator(candles, period):
+def calculate_macd_indicator(candles, short_period, long_period):
     """
     Calculate MACD (Moving Average Convergence Divergence).
-    Uses standard periods: 12 for fast EMA, 26 for slow EMA, 9 for signal line.
     
     Args:
         candles: list of candles with 'close' price
-        period: period of the macd (signal line period, typically 9)
+        short_period: period of the fast EMA
+        long_period: period of the slow EMA
     
     Returns:
         macd: dictionary containing MACD line, signal line, and histogram
     """
-    if len(candles) < 26:  # Need at least 26 candles for MACD
+    if len(candles) < long_period:  # Need at least 26 candles for MACD
         return None
     
-    # Extract close prices
-    closes = [candle['close'] for candle in candles]
-    
     # Calculate fast EMA (12-period)
-    fast_ema = calculate_ema_indicator(candles, 12)
+    fast_ema = calculate_ema_indicator(candles, short_period)
     
     # Calculate slow EMA (26-period)
-    slow_ema = calculate_ema_indicator(candles, 26)
+    slow_ema = calculate_ema_indicator(candles, long_period)
     
     if fast_ema is None or slow_ema is None:
         return None
@@ -168,6 +165,180 @@ def calculate_macd_indicator(candles, period):
         'signal_line': None,  # Would need historical MACD values
         'histogram': None     # Would need signal line
     }
+
+def calculate_fibonacci_indicator(candles, period):
+    """
+    Get fibonacci levels from ohlcv data for the given period.
+    Percentages: 23.6%, 38.2%, 50%, 61.8%, 78.6%.
+    Use the start and end of the period to calculate the fibonacci levels.
+    
+    Args:
+        candles: list of candles with 'low' and 'high' price
+        period: period of the fibonacci indicator (from the last candle)
+    
+    Returns:
+        fibonacci_levels: list of fibonacci levels
+        trend: "up" or "down"
+    """
+    if len(candles) < period:
+        return None, None
+    
+    # Get the candles for the specified period (from the end)
+    period_candles = candles[-period:]
+    
+    # Find the highest high and lowest low in the period
+    highs = [candle['high'] for candle in period_candles]
+    lows = [candle['low'] for candle in period_candles]
+    
+    swing_high = max(highs)
+    swing_low = min(lows)
+    
+    # Determine the trend based on the start and end prices
+    start_price = period_candles[0]['close']
+    end_price = period_candles[-1]['close']
+    
+    if end_price > start_price:
+        trend = "up"
+        # For uptrend: swing low to swing high
+        price_range = swing_high - swing_low
+        base_price = swing_low
+    else:
+        trend = "down"
+        # For downtrend: swing high to swing low
+        price_range = swing_high - swing_low
+        base_price = swing_high
+    
+    # Calculate Fibonacci retracement levels
+    fibonacci_ratios = [0.236, 0.382, 0.500, 0.618, 0.786]
+    fibonacci_levels = []
+    
+    for ratio in fibonacci_ratios:
+        if trend == "up":
+            # For uptrend, levels are below the swing high
+            level = swing_high - (price_range * ratio)
+        else:
+            # For downtrend, levels are above the swing low
+            level = swing_low + (price_range * ratio)
+        
+        fibonacci_levels.append({ "level": level, "ratio": ratio })
+    
+    return fibonacci_levels, trend
+
+def calculate_support_resistance_indicator(candles, period, pip_offset=0.0002, merge_threshold=0.0005, min_strength=3):
+    """
+    Get support and resistance levels from ohlcv data for the given period.
+    Range Definition: Set levels with a ±5 pip offset to account for noise (e.g., 1.0860 becomes 1.0855-1.0865).
+    
+    Confirmation with historical candles to find reliable levels for short-term trading.
+    Identify pivot highs (High higher than two candles before and after) and pivot lows (Low lower than two before and after).
+    Mark resistance zones around pivot highs and support zones around pivot lows, applying ±5 pips.
+    Confirm levels with multiple price tests or reversals.
+    
+    Args:
+        candles: list of candles with 'low' and 'high' price
+        period: period of candles to calculate the support and resistance indicator (from the last candle)
+    
+    Returns:
+        support_resistance_levels: list of support and resistance levels
+    """
+    if len(candles) < period:
+        return None
+    
+    # Get the candles for the specified period (from the end)
+    period_candles = candles[-period:]
+    
+    # Find pivot highs and lows
+    pivot_highs = []
+    pivot_lows = []
+    
+    # Need at least 5 candles to identify pivot points (2 before + current + 2 after)
+    for i in range(2, len(period_candles) - 2):
+        current_high = period_candles[i]['high']
+        current_low = period_candles[i]['low']
+        
+        # Check if current high is higher than 2 candles before and after
+        is_pivot_high = True
+        for j in range(i-3, i+3):
+            if j != i and period_candles[j]['high'] >= current_high:
+                is_pivot_high = False
+                break
+        
+        if is_pivot_high:
+            pivot_highs.append({
+                'type': 'pivot_high',
+                'index': i,
+                'price': current_high,
+                'zone_low': current_high - pip_offset,
+                'zone_high': current_high + pip_offset
+            })
+        
+        # Check if current low is lower than 2 candles before and after
+        is_pivot_low = True
+        for j in range(i-3, i+3):
+            if j != i and period_candles[j]['low'] <= current_low:
+                is_pivot_low = False
+                break
+        
+        if is_pivot_low:
+            pivot_lows.append({
+                'type': 'pivot_low',
+                'index': i,
+                'price': current_low,
+                'zone_low': current_low - pip_offset,
+                'zone_high': current_low + pip_offset
+            })
+    
+    # Merge nearby levels to avoid duplicates
+    def merge_nearby_levels(levels):
+        if not levels:
+            return []
+        
+        merged = []
+        levels.sort(key=lambda x: x['price'])
+        
+        current_group = [levels[0]]
+        
+        for level in levels[1:]:
+            if abs(level['price'] - current_group[0]['price']) <= merge_threshold:
+                current_group.append(level)
+            else:
+                # Merge the group
+                if len(current_group) >= min_strength:
+                    avg_price = sum(l['price'] for l in current_group) / len(current_group)
+                    merged.append({
+                        'price': avg_price,
+                        'zone_low': avg_price - pip_offset,
+                        'zone_high': avg_price + pip_offset,
+                        'type': 'resistance' if 'pivot_high' in str(current_group[0]) else 'support',
+                        'strength': len(current_group)  # Number of confirming levels
+                    })
+                current_group = [level]
+        
+        # Handle the last group
+        if current_group:
+            if len(current_group) >= min_strength:
+                avg_price = sum(l['price'] for l in current_group) / len(current_group)
+                merged.append({
+                    'price': avg_price,
+                    'zone_low': avg_price - pip_offset,
+                    'zone_high': avg_price + pip_offset,
+                    'type': 'resistance' if 'pivot_high' in str(current_group[0]) else 'support',
+                    'strength': len(current_group)
+                })
+        
+        return merged
+    
+    # Merge pivot highs and lows
+    resistance_levels = merge_nearby_levels(pivot_highs)
+    support_levels = merge_nearby_levels(pivot_lows)
+    
+    # Combine all levels
+    support_resistance_levels = resistance_levels + support_levels
+    
+    # Sort by price
+    support_resistance_levels.sort(key=lambda x: x['price'])
+    
+    return support_resistance_levels
 
 # Alternative MACD implementation that returns just the MACD line value
 def calculate_macd_line(candles, fast_period=12, slow_period=26):

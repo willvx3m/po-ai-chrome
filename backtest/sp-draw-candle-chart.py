@@ -24,12 +24,15 @@ from typing import List, Dict, Any, Tuple
 import tkinter as tk
 from tkinter import filedialog
 from module.trend_lines import calculate_trend_lines
-from module.indicator import calculate_ema_indicator, calculate_sma_indicator
+from module.indicator import calculate_ema_indicator, calculate_sma_indicator, calculate_fibonacci_indicator, calculate_support_resistance_indicator
 
 # Indicator period constants
 EMA_LONG_PERIOD = 30
 EMA_SHORT_PERIOD = 5
 SMA_PERIOD = 5
+SR_PIP_OFFSET = 0.0002
+SR_MERGE_THRESHOLD = 0.001
+SR_MIN_STRENGTH = 3
 
 class CandleChart:
     def __init__(self, data: List[Dict[str, Any]], trading_results: List[Dict[str, Any]] = None):
@@ -45,6 +48,12 @@ class CandleChart:
         self.trend_lines = []  # Store drawn trend lines
         self.show_trend_lines = True  # Toggle for showing trend lines
         self.show_trading_positions = True  # Toggle for showing trading positions
+        
+        # Fibonacci and Support/Resistance toggles
+        self.show_fibonacci = False
+        self.show_support_resistance = False
+        self.fibonacci_levels = []  # Store drawn fibonacci levels
+        self.support_resistance_levels = []  # Store drawn support/resistance levels
         
         # Indicator toggles
         self.show_ema_long = False
@@ -207,15 +216,35 @@ class CandleChart:
         self.btn_draw_trend.on_clicked(self.on_draw_trend_click)
         self.btn_erase_trend.on_clicked(self.on_erase_trend_click)
         
+        # Fibonacci control buttons
+        ax_draw_fibonacci = plt.axes((0.92, 0.8, 0.06, 0.03))
+        ax_erase_fibonacci = plt.axes((0.92, 0.75, 0.06, 0.03))
+        
+        self.btn_draw_fibonacci = Button(ax_draw_fibonacci, 'Draw Fib')
+        self.btn_erase_fibonacci = Button(ax_erase_fibonacci, 'Erase Fib')
+        
+        self.btn_draw_fibonacci.on_clicked(self.on_draw_fibonacci_click)
+        self.btn_erase_fibonacci.on_clicked(self.on_erase_fibonacci_click)
+        
+        # Support/Resistance control buttons
+        ax_draw_sr = plt.axes((0.92, 0.7, 0.06, 0.03))
+        ax_erase_sr = plt.axes((0.92, 0.65, 0.06, 0.03))
+        
+        self.btn_draw_sr = Button(ax_draw_sr, 'Draw S/R')
+        self.btn_erase_sr = Button(ax_erase_sr, 'Erase S/R')
+        
+        self.btn_draw_sr.on_clicked(self.on_draw_sr_click)
+        self.btn_erase_sr.on_clicked(self.on_erase_sr_click)
+        
         # Trading positions toggle button
         if self.trading_results:
-            ax_toggle_positions = plt.axes((0.91, 0.8, 0.08, 0.03))
+            ax_toggle_positions = plt.axes((0.91, 0.6, 0.08, 0.03))
             self.btn_toggle_positions = Button(ax_toggle_positions, 'Toggle Positions')
             self.btn_toggle_positions.on_clicked(self.on_toggle_positions_click)
             
             # Trading position navigation buttons
-            ax_prev_trade = plt.axes((0.91, 0.75, 0.04, 0.03))
-            ax_next_trade = plt.axes((0.95, 0.75, 0.04, 0.03))
+            ax_prev_trade = plt.axes((0.91, 0.55, 0.04, 0.03))
+            ax_next_trade = plt.axes((0.95, 0.55, 0.04, 0.03))
             
             self.btn_prev_trade = Button(ax_prev_trade, '← Trade')
             self.btn_next_trade = Button(ax_next_trade, 'Trade →')
@@ -224,9 +253,9 @@ class CandleChart:
             self.btn_next_trade.on_clicked(self.on_next_trade_click)
         
         # Indicator toggle buttons
-        ax_ema_50 = plt.axes((0.91, 0.7, 0.08, 0.03))
-        ax_ema_10 = plt.axes((0.91, 0.66, 0.08, 0.03))
-        ax_sma_10 = plt.axes((0.91, 0.62, 0.08, 0.03))
+        ax_ema_50 = plt.axes((0.91, 0.5, 0.08, 0.03))
+        ax_ema_10 = plt.axes((0.91, 0.46, 0.08, 0.03))
+        ax_sma_10 = plt.axes((0.91, 0.42, 0.08, 0.03))
         
         self.btn_ema_50 = Button(ax_ema_50, f'EMA({EMA_LONG_PERIOD})')
         self.btn_ema_10 = Button(ax_ema_10, f'EMA({EMA_SHORT_PERIOD})')
@@ -252,8 +281,12 @@ class CandleChart:
         self.zoom_factor = val
         view_width = int(self.max_candles / self.zoom_factor)
         self.view_end = min(self.view_start + view_width, len(self.current_data))
-        # Clear trend lines when zooming
+        # Clear trend lines, fibonacci, and support/resistance when zooming
         self.trend_lines = []
+        self.fibonacci_levels = []
+        self.support_resistance_levels = []
+        self.show_fibonacci = False
+        self.show_support_resistance = False
         self.update_chart()
     
     def on_aggregation_change(self, label):
@@ -262,10 +295,14 @@ class CandleChart:
         self.aggregation_level = agg_levels[label]
         self.current_data = self.aggregate_data(self.aggregation_level)
         
-        # Reset view and clear trend lines
+        # Reset view and clear trend lines, fibonacci, and support/resistance
         self.view_start = 0
         self.view_end = min(self.max_candles, len(self.current_data))
         self.trend_lines = []
+        self.fibonacci_levels = []
+        self.support_resistance_levels = []
+        self.show_fibonacci = False
+        self.show_support_resistance = False
         self.update_chart()
     
     def on_prev_click(self, event):
@@ -332,6 +369,40 @@ class CandleChart:
     def on_toggle_sma_10_click(self, event):
         """Handle toggle SMA(10) button click"""
         self.show_sma = not self.show_sma
+        self.update_chart()
+    
+    def on_draw_fibonacci_click(self, event):
+        """Handle draw fibonacci button click"""
+        view_data = self.current_data[self.view_start:self.view_end]
+        if len(view_data) >= 5:  # Need at least 5 candles for fibonacci
+            result = calculate_fibonacci_indicator(view_data, len(view_data))
+            if result and result[0]:  # Check if we got fibonacci levels
+                self.fibonacci_levels = result
+                self.show_fibonacci = True
+                self.update_chart()
+    
+    def on_erase_fibonacci_click(self, event):
+        """Handle erase fibonacci button click"""
+        self.fibonacci_levels = []
+        self.show_fibonacci = False
+        self.update_chart()
+    
+    def on_draw_sr_click(self, event):
+        """Handle draw support/resistance button click"""
+        view_data = self.current_data[self.view_start:self.view_end]
+        if len(view_data) >= 5:  # Need at least 5 candles for support/resistance
+            calculate_sr_period = len(view_data) * 2
+            sr_data = self.current_data[max(0, self.view_end - calculate_sr_period):self.view_end]
+            result = calculate_support_resistance_indicator(sr_data, calculate_sr_period, pip_offset=SR_PIP_OFFSET, merge_threshold=SR_MERGE_THRESHOLD, min_strength=SR_MIN_STRENGTH)
+            if result:  # Check if we got support/resistance levels
+                self.support_resistance_levels = result
+                self.show_support_resistance = True
+                self.update_chart()
+    
+    def on_erase_sr_click(self, event):
+        """Handle erase support/resistance button click"""
+        self.support_resistance_levels = []
+        self.show_support_resistance = False
         self.update_chart()
     
     def get_all_trading_positions(self):
@@ -881,8 +952,15 @@ class CandleChart:
             
             indicators_text = " + " + ", ".join(indicators) if indicators else ""
             
+            # Add Fibonacci and Support/Resistance text to title
+            analysis_text = ""
+            if self.show_fibonacci:
+                analysis_text += " + Fib"
+            if self.show_support_resistance:
+                analysis_text += " + S/R"
+            
             self.ax.set_title(
-                f'Candle Chart{agg_text}{positions_text}{indicators_text} - {start_time.strftime("%Y-%m-%d %H:%M")} to {end_time.strftime("%Y-%m-%d %H:%M")} '
+                f'Candle Chart{agg_text}{positions_text}{indicators_text}{analysis_text} - {start_time.strftime("%Y-%m-%d %H:%M")} to {end_time.strftime("%Y-%m-%d %H:%M")} '
                 f'(Showing {len(view_data)} candles, Position {self.view_start}-{self.view_end})',
                 fontsize=12
             )
@@ -906,7 +984,116 @@ class CandleChart:
             # Add legend for trend lines
             self.ax.legend(loc='upper left', fontsize=8)
         
+        # Draw Fibonacci levels if they exist
+        if self.show_fibonacci and self.fibonacci_levels:
+            self.draw_fibonacci_levels()
+        
+        # Draw Support/Resistance levels if they exist
+        if self.show_support_resistance and self.support_resistance_levels:
+            self.draw_support_resistance_levels()
+        
         plt.draw()
+    
+    def draw_fibonacci_levels(self):
+        """Draw Fibonacci retracement levels"""
+        if not self.fibonacci_levels or not self.fibonacci_levels[0]:
+            return
+        
+        fibonacci_levels, trend = self.fibonacci_levels
+        view_data = self.current_data[self.view_start:self.view_end]
+        
+        if not view_data:
+            return
+        
+        # Get the price range for the view
+        all_prices = []
+        for candle in view_data:
+            all_prices.extend([candle['open'], candle['close'], candle['high'], candle['low']])
+        
+        if not all_prices:
+            return
+        
+        min_price = min(all_prices)
+        max_price = max(all_prices)
+        
+        # Draw horizontal lines for each Fibonacci level
+        colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7']  # Different colors for each level
+        ratios = [0.236, 0.382, 0.500, 0.618, 0.786]
+        
+        for i, level_data in enumerate(fibonacci_levels):
+            if i < len(colors):
+                level_price = level_data['level']
+                ratio = level_data['ratio']
+                
+                # Only draw if the level is within the price range
+                if min_price <= level_price <= max_price:
+                    # Draw horizontal line across the entire view
+                    self.ax.axhline(y=level_price, color=colors[i], linestyle='--', 
+                                   linewidth=1.5, alpha=0.7, 
+                                   label=f'Fib {ratio*100:.1f}%')
+                    
+                    # Add text label
+                    self.ax.text(len(view_data) + 1, level_price, 
+                                f'{ratio*100:.1f}%', 
+                                fontsize=8, ha='left', va='center',
+                                color=colors[i], weight='bold')
+        
+        # Add legend for Fibonacci levels
+        self.ax.legend(loc='upper left', fontsize=8)
+    
+    def draw_support_resistance_levels(self):
+        """Draw Support and Resistance levels"""
+        if not self.support_resistance_levels:
+            return
+        
+        view_data = self.current_data[self.view_start:self.view_end]
+        
+        if not view_data:
+            return
+        
+        # Get the price range for the view
+        all_prices = []
+        for candle in view_data:
+            all_prices.extend([candle['open'], candle['close'], candle['high'], candle['low']])
+        
+        if not all_prices:
+            return
+        
+        min_price = min(all_prices)
+        max_price = max(all_prices)
+        
+        # Draw horizontal lines for each support/resistance level
+        for level in self.support_resistance_levels:
+            level_price = level['price']
+            level_type = level.get('type', 'unknown')
+            strength = level.get('strength', 1)
+            
+            # Only draw if the level is within the price range
+            if min_price <= level_price <= max_price:
+                # Determine color and style based on type and strength
+                if level_type == 'support':
+                    color = 'green'
+                    linestyle = '-'
+                else:  # resistance
+                    color = 'red'
+                    linestyle = '-'
+                
+                # Adjust line width based on strength
+                linewidth = 1 + (strength * 0.5)
+                
+                # Draw horizontal line across the entire view
+                self.ax.axhline(y=level_price, color=color, linestyle=linestyle, 
+                               linewidth=linewidth, alpha=0.8, 
+                               label=f'{level_type.title()} (strength: {strength})')
+                
+                # Add text label
+                self.ax.text(len(view_data) + 1, level_price, 
+                            f'{level_type.title()}', 
+                            fontsize=8, ha='left', va='center',
+                            color=color, weight='bold')
+        
+        # Add legend for Support/Resistance levels
+        self.ax.legend(loc='upper left', fontsize=8)
 
 
 def load_json_data(filename: str) -> List[Dict[str, Any]]:
@@ -1001,6 +1188,9 @@ def main():
     print("  - Mouse wheel: Zoom in/out")
     print("  - Mouse drag: Pan around")
     print("  - EMA LONG, EMA SHORT, SMA: Toggle technical indicators")
+    print("  - Draw Trend / Erase Trend: Draw trend lines on current view")
+    print("  - Draw Fib / Erase Fib: Draw Fibonacci levels on current view")
+    print("  - Draw S/R / Erase S/R: Draw Support/Resistance levels on current view")
     if trading_results:
         print("  - Toggle Positions: Show/hide trading positions")
         print("  - ← Trade / Trade →: Navigate between trading positions")
