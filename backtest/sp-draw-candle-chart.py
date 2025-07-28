@@ -24,12 +24,13 @@ from typing import List, Dict, Any, Tuple
 import tkinter as tk
 from tkinter import filedialog
 from module.trend_lines import calculate_trend_lines
-from module.indicator import calculate_ema_indicator, calculate_sma_indicator, calculate_fibonacci_indicator, calculate_support_resistance_indicator
+from module.indicator import calculate_ema_indicator, calculate_sma_indicator, calculate_fibonacci_indicator, calculate_support_resistance_indicator, calculate_rsi_indicator
 
 # Indicator period constants
 EMA_LONG_PERIOD = 30
 EMA_SHORT_PERIOD = 5
 SMA_PERIOD = 5
+RSI_PERIOD = 30
 SR_PIP_OFFSET = 0.0002
 SR_MERGE_THRESHOLD = 0.001
 SR_MIN_STRENGTH = 3
@@ -59,13 +60,18 @@ class CandleChart:
         self.show_ema_long = False
         self.show_ema_short = False
         self.show_sma = False
+        self.show_rsi = False  # Toggle for showing RSI
         
         # Parse datetime and sort data
         self.parse_and_sort_data()
         
         # Create the plot
-        self.fig, self.ax = plt.subplots(figsize=(15, 8))
+        self.create_figure_layout()
         self.setup_plot()
+        
+        # Adjust subplot spacing for controls
+        self.fig.subplots_adjust(bottom=0.2, left=0.1, right=0.9, top=0.9)
+        
         self.setup_controls()
         self.setup_hover_events()
         self.update_chart()
@@ -155,21 +161,27 @@ class CandleChart:
         }
     
     def setup_plot(self):
-        """Setup the main plot"""
+        """Setup the main plot properties (without creating figures)"""
         self.ax.set_title('Candle Chart (Scrollable with Zoom)', fontsize=14)
         self.ax.set_xlabel('Time')
         self.ax.set_ylabel('Price')
         self.ax.grid(True, alpha=0.3)
         
         # Format x-axis
-        self.ax.set_xlabel('Time')
         self.ax.tick_params(axis='x', rotation=45, labelsize=8)
+    
+    def create_figure_layout(self):
+        """Create the figure layout based on RSI state"""
+        if self.show_rsi:
+            self.fig, (self.ax, self.ax_rsi) = plt.subplots(2, 1, figsize=(15, 10), 
+                                                           gridspec_kw={'height_ratios': [3, 1]})
+        else:
+            self.fig, self.ax = plt.subplots(figsize=(15, 8))
+            if hasattr(self, 'ax_rsi'):
+                self.ax_rsi = None
     
     def setup_controls(self):
         """Setup interactive controls"""
-        # Create control panel with more space for x-axis labels
-        plt.subplots_adjust(bottom=0.2, left=0.1, right=0.9, top=0.9)
-        
         # View range slider
         max_start = max(0, len(self.original_data) - self.max_candles)
         ax_slider = plt.axes((0.1, 0.1, 0.65, 0.03))
@@ -256,14 +268,17 @@ class CandleChart:
         ax_ema_50 = plt.axes((0.91, 0.5, 0.08, 0.03))
         ax_ema_10 = plt.axes((0.91, 0.46, 0.08, 0.03))
         ax_sma_10 = plt.axes((0.91, 0.42, 0.08, 0.03))
+        ax_rsi = plt.axes((0.91, 0.38, 0.08, 0.03))
         
         self.btn_ema_50 = Button(ax_ema_50, f'EMA({EMA_LONG_PERIOD})')
         self.btn_ema_10 = Button(ax_ema_10, f'EMA({EMA_SHORT_PERIOD})')
         self.btn_sma_10 = Button(ax_sma_10, f'SMA({SMA_PERIOD})')
+        self.btn_rsi = Button(ax_rsi, f'RSI({RSI_PERIOD})')
         
         self.btn_ema_50.on_clicked(self.on_toggle_ema_50_click)
         self.btn_ema_10.on_clicked(self.on_toggle_ema_10_click)
         self.btn_sma_10.on_clicked(self.on_toggle_sma_10_click)
+        self.btn_rsi.on_clicked(self.on_toggle_rsi_click)
     
     def setup_hover_events(self):
         """Setup hover events for tooltips"""
@@ -371,6 +386,47 @@ class CandleChart:
         self.show_sma = not self.show_sma
         self.update_chart()
     
+    def on_toggle_rsi_click(self, event):
+        """Handle toggle RSI button click"""
+        old_show_rsi = self.show_rsi
+        self.show_rsi = not self.show_rsi
+        
+        # Only recreate layout if RSI state actually changed
+        if old_show_rsi != self.show_rsi:
+            # Store current figure
+            current_fig = self.fig
+            
+            # Clear all axes and widgets completely
+            current_fig.clear()
+            
+            # Adjust figure size based on RSI state
+            if self.show_rsi:
+                current_fig.set_size_inches(15, 10)
+                gs = current_fig.add_gridspec(2, 1, height_ratios=[3, 1])
+                self.ax = current_fig.add_subplot(gs[0])
+                self.ax_rsi = current_fig.add_subplot(gs[1])
+            else:
+                current_fig.set_size_inches(15, 8)
+                self.ax = current_fig.add_subplot(1, 1, 1)
+                self.ax_rsi = None
+            
+            # Adjust subplot spacing
+            current_fig.subplots_adjust(bottom=0.2, left=0.1, right=0.9, top=0.9)
+            
+            # Recreate controls and events
+            self.setup_controls()
+            self.setup_hover_events()
+            
+            # Force complete canvas redraw and update
+            current_fig.canvas.draw()
+            current_fig.canvas.flush_events()
+            
+            # Additional refresh for proper layout
+            if hasattr(current_fig.canvas, 'get_tk_widget'):
+                current_fig.canvas.get_tk_widget().update()
+        
+        self.update_chart()
+    
     def on_draw_fibonacci_click(self, event):
         """Handle draw fibonacci button click"""
         view_data = self.current_data[self.view_start:self.view_end]
@@ -391,7 +447,7 @@ class CandleChart:
         """Handle draw support/resistance button click"""
         view_data = self.current_data[self.view_start:self.view_end]
         if len(view_data) >= 5:  # Need at least 5 candles for support/resistance
-            calculate_sr_period = len(view_data) * 2
+            calculate_sr_period = len(view_data)
             sr_data = self.current_data[max(0, self.view_end - calculate_sr_period):self.view_end]
             result = calculate_support_resistance_indicator(sr_data, calculate_sr_period, pip_offset=SR_PIP_OFFSET, merge_threshold=SR_MERGE_THRESHOLD, min_strength=SR_MIN_STRENGTH)
             if result:  # Check if we got support/resistance levels
@@ -540,6 +596,22 @@ class CandleChart:
         tooltip_text += f"High: {candle['high']:.6f}\n"
         tooltip_text += f"Low: {candle['low']:.6f}\n"
         tooltip_text += f"Close: {candle['close']:.6f}"
+        
+        # Add RSI value if RSI is enabled
+        if self.show_rsi:
+            # Find the candle index in the current data
+            candle_index = None
+            for i, c in enumerate(self.current_data):
+                if c['datetime'] == candle['datetime']:
+                    candle_index = i
+                    break
+            
+            if candle_index is not None:
+                # Calculate RSI for candles up to this point
+                candles_up_to_current = self.current_data[max(0, candle_index+1-RSI_PERIOD):candle_index+1]
+                rsi_value = calculate_rsi_indicator(candles_up_to_current, RSI_PERIOD)
+                if rsi_value is not None:
+                    tooltip_text += f"\nRSI: {rsi_value:.2f}"
         
         # Position tooltip near mouse but ensure it's visible
         x_data, y_data = event.xdata, event.ydata
@@ -949,6 +1021,8 @@ class CandleChart:
                 indicators.append(f"EMA({EMA_SHORT_PERIOD})")
             if self.show_sma:
                 indicators.append(f"SMA({SMA_PERIOD})")
+            if self.show_rsi:
+                indicators.append(f"RSI({RSI_PERIOD})")
             
             indicators_text = " + " + ", ".join(indicators) if indicators else ""
             
@@ -991,6 +1065,10 @@ class CandleChart:
         # Draw Support/Resistance levels if they exist
         if self.show_support_resistance and self.support_resistance_levels:
             self.draw_support_resistance_levels()
+        
+        # Draw RSI chart if enabled
+        if self.show_rsi:
+            self.draw_rsi_chart()
         
         plt.draw()
     
@@ -1095,6 +1173,90 @@ class CandleChart:
         # Add legend for Support/Resistance levels
         self.ax.legend(loc='upper left', fontsize=8)
 
+    def draw_rsi_chart(self):
+        """Draw RSI chart if enabled"""
+        if not self.show_rsi or not hasattr(self, 'ax_rsi') or self.ax_rsi is None:
+            return
+        
+        # Clear the RSI subplot first
+        self.ax_rsi.clear()
+        
+        # Reset RSI plot properties
+        # self.ax_rsi.set_title('RSI (14)', fontsize=10)
+        self.ax_rsi.set_ylabel('RSI')
+        self.ax_rsi.grid(True, alpha=0.3)
+        self.ax_rsi.axhline(y=70, color='r', linestyle='--', alpha=0.5, label='Overbought (70)')
+        self.ax_rsi.axhline(y=30, color='g', linestyle='--', alpha=0.5, label='Oversold (30)')
+        self.ax_rsi.set_ylim(0, 100)
+        
+        view_data = self.current_data[self.view_start:self.view_end]
+        if not view_data:
+            return
+        
+        # Calculate RSI values for each candle in the view
+        rsi_values = []
+        for i in range(len(view_data)):
+            # Calculate RSI using data up to current position in the entire dataset
+            global_index = self.view_start + i
+            
+            # RSI needs period + 1 candles to calculate price changes
+            start_idx = max(0, global_index + 1 - (RSI_PERIOD + 1))
+            end_idx = global_index + 1
+            candles_for_rsi = self.current_data[start_idx:end_idx]
+            
+            # Make sure we have enough candles for RSI calculation
+            if len(candles_for_rsi) >= (RSI_PERIOD + 1):
+                try:
+                    rsi_val = calculate_rsi_indicator(candles_for_rsi, RSI_PERIOD)
+                    rsi_values.append(rsi_val)
+                except Exception as e:
+                    print(f"RSI calculation error: {e}")
+                    rsi_values.append(None)
+            else:
+                rsi_values.append(None)
+        
+        # Debug: Print RSI calculation info
+        valid_rsi_count = sum(1 for v in rsi_values if v is not None)
+        print(f"RSI Debug: Calculated {valid_rsi_count} valid RSI values out of {len(rsi_values)} candles")
+        if valid_rsi_count > 0:
+            valid_values = [v for v in rsi_values if v is not None]
+            print(f"RSI Debug: RSI range {min(valid_values):.2f} to {max(valid_values):.2f}")
+        
+        # Create x-axis positions that match the main chart exactly
+        x_positions = list(range(len(view_data)))
+        
+        # Plot RSI values
+        valid_points = [(x, rsi) for x, rsi in zip(x_positions, rsi_values) if rsi is not None]
+        
+        if valid_points:
+            x_vals, y_vals = zip(*valid_points)
+            self.ax_rsi.plot(x_vals, y_vals, color='purple', linewidth=2, alpha=0.8, zorder=2)
+            
+            # Fill area for better visualization
+            self.ax_rsi.fill_between(x_vals, y_vals, alpha=0.3, color='purple')
+            
+        # Set x-axis to match main chart exactly
+        self.ax_rsi.set_xlim(-1, len(view_data))
+        
+        # Use the same x-axis ticks as main chart
+        if len(view_data) > 20:
+            tick_step = max(1, len(view_data) // 20)
+            tick_positions = range(0, len(view_data), tick_step)
+            tick_labels = [view_data[i]['time_label'] for i in tick_positions]
+        else:
+            tick_positions = range(len(view_data))
+            tick_labels = [candle['time_label'] for candle in view_data]
+        
+        self.ax_rsi.set_xticks(tick_positions)
+        self.ax_rsi.set_xticklabels(tick_labels)
+        self.ax_rsi.tick_params(axis='x', rotation=45, labelsize=8)
+        
+        # Add some visual indicators for RSI levels
+        self.ax_rsi.text(len(view_data) * 0.02, 75, 'Overbought', fontsize=8, color='red', alpha=0.7)
+        self.ax_rsi.text(len(view_data) * 0.02, 25, 'Oversold', fontsize=8, color='green', alpha=0.7)
+        
+        print(f"RSI Debug: RSI chart drawing completed. Valid points: {len(valid_points) if valid_points else 0}")
+
 
 def load_json_data(filename: str) -> List[Dict[str, Any]]:
     """Load JSON data from file"""
@@ -1164,7 +1326,7 @@ def main():
     elif args.input:
         input_file = args.input
     else:
-        input_file = "complete.json"
+        input_file = "module/eurusd-full.json"
     
     # Load candle data
     data = load_json_data(input_file)
@@ -1188,6 +1350,7 @@ def main():
     print("  - Mouse wheel: Zoom in/out")
     print("  - Mouse drag: Pan around")
     print("  - EMA LONG, EMA SHORT, SMA: Toggle technical indicators")
+    print("  - RSI: Toggle RSI chart (appears below main chart)")
     print("  - Draw Trend / Erase Trend: Draw trend lines on current view")
     print("  - Draw Fib / Erase Fib: Draw Fibonacci levels on current view")
     print("  - Draw S/R / Erase S/R: Draw Support/Resistance levels on current view")
