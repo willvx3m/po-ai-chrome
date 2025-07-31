@@ -112,13 +112,19 @@ def calculate_rsi_indicator(candles, period):
     if len(changes) < period:
         return None
     
-    # Separate gains and losses
-    gains = [change if change > 0 else 0 for change in changes]
-    losses = [-change if change < 0 else 0 for change in changes]
+    # Separate gains and losses, omit excessive gains and losses
+    gains = [change if (change > 0 and change < 0.03) else 0 for change in changes]
+    losses = [-change if (change < 0 and change > -0.03) else 0 for change in changes]
+
+    # gains.remove(max(gains))
+    # losses.remove(max(losses))
+
+    if len(gains) == 0 or len(losses) == 0:
+        return None
     
     # Calculate average gains and losses for the period
-    avg_gain = sum(gains) / period
-    avg_loss = sum(losses) / period
+    avg_gain = sum(gains) / len(gains)
+    avg_loss = sum(losses) / len(losses)
     
     # Calculate RS and RSI
     if avg_loss == 0:
