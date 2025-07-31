@@ -715,12 +715,12 @@ class PricePredictor:
                 logging.info(f"  Confusion Matrix:\n{cm}")
                 
                 # Save model
-                model_path = f'model_horizon_{h}min.h5'
+                model_path = f'checkpoints/model_horizon_{h}min.h5'
                 self.models[h].save(model_path)
                 logging.info(f"Model saved to {model_path}")
                 
                 # Save scaler
-                scaler_path = f'scaler_horizon_{h}min.pkl'
+                scaler_path = f'checkpoints/scaler_horizon_{h}min.pkl'
                 with open(scaler_path, 'wb') as f:
                     pickle.dump(self.scaler, f)
                 logging.info(f"Scaler saved to {scaler_path}")
@@ -729,7 +729,7 @@ class PricePredictor:
                 logging.error(f"Evaluation failed for horizon {h}: {e}")
 
         # Save common scaler for easy loading
-        self.save_scaler('scaler_common.pkl')
+        self.save_scaler('checkpoints/scaler_common.pkl')
         logging.info("All models and scalers saved successfully!")
 
 def parse_args():
