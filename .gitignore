@@ -20,3 +20,8 @@ __pycache__
 
 .env
 .env.*
+
+*.pt
+*.pkl
+*.h5
+*.pth
