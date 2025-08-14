@@ -1,6 +1,7 @@
 node_modules
 *.log
 *.json
+*.jsonl
 *.csv
 *.png
 *.zip
@@ -16,3 +17,6 @@ backtest/price_track*
 venv
 venv*
 __pycache__
+
+.env
+.env.*
