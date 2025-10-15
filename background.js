@@ -1,4 +1,4 @@
-let SLACK_BOT_TOKEN = 'xoxb-523895185494-9041191622752-HM9RyRlScZgl0qeUYzVcyzAI';
+let SLACK_BOT_TOKEN = ''; // Set via settings or environment variable
 let CHANNEL_ID = '';
 
 async function sendSlackNotification(message) {
